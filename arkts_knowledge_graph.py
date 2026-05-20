@@ -16,6 +16,7 @@ import os
 import re
 import sqlite3
 import json
+import logging
 from pathlib import Path
 from dataclasses import dataclass, field
 from typing import List, Dict, Set, Optional, Tuple
@@ -24,6 +25,13 @@ try:
     _HAS_OPENAI = True
 except ImportError:
     _HAS_OPENAI = False
+
+# 全局调试日志
+_logger = logging.getLogger('arkts_kg')
+_handler = logging.StreamHandler()
+_handler.setFormatter(logging.Formatter('[%(levelname)s %(funcName)s:%(lineno)d] %(message)s'))
+_logger.addHandler(_handler)
+_logger.setLevel(logging.WARNING)  # 默认WARNING，通过 --debug 开启DEBUG
 
 
 # ============================================================================
@@ -628,6 +636,7 @@ class ArkTSParser:
 
         self.files.append(FileInfo(path=file_path))
         stripped = self._strip_comments_and_strings(content)
+        _logger.debug(f"[SCAN] {file_path}: stripped {len(content)} -> {len(stripped)} chars")
 
         for match in self.struct_pattern.finditer(stripped):
             name = match.group(3)
@@ -636,11 +645,14 @@ class ArkTSParser:
             region = before[last_brace:] if last_brace != -1 else before
             if self.component_decorator.search(region):
                 self._component_names.add(name)
+                _logger.debug(f"[SCAN] struct '{name}' -> component (decorator found)")
             self._all_class_names.add(name)
+            _logger.debug(f"[SCAN] struct '{name}' declared at line {content[:match.start()].count(chr(10))+1}")
 
         for match in self.class_pattern.finditer(stripped):
             name = match.group(4)
             self._all_class_names.add(name)
+            _logger.debug(f"[SCAN] class '{name}' declared at line {content[:match.start()].count(chr(10))+1}")
 
     def _full_parse(self, file_path: str):
         """第二遍：完整解析"""
@@ -651,6 +663,7 @@ class ArkTSParser:
             return
 
         stripped = self._strip_comments_and_strings(content)
+        _logger.debug(f"[PARSE] {file_path}: starting full parse")
 
         # struct
         for match in self.struct_pattern.finditer(stripped):
@@ -669,6 +682,7 @@ class ArkTSParser:
                 is_component=is_component, is_entry=is_entry,
                 line_number=line_number
             ))
+            _logger.debug(f"[PARSE] struct '{name}' L{line_number} component={is_component} entry={is_entry}")
 
             # 提取struct的extends继承关系
             parent_class = match.group(4)
@@ -677,6 +691,7 @@ class ArkTSParser:
                     child_class=name, parent_class=parent_class,
                     file=file_path, line_number=line_number
                 ))
+                _logger.debug(f"[PARSE] struct '{name}' extends '{parent_class}'")
 
             # 提取struct的implements接口关系
             implements_str = match.group(5)
@@ -687,8 +702,10 @@ class ArkTSParser:
                             child_class=name, parent_class=iface_name,
                             file=file_path, line_number=line_number
                         ))
+                        _logger.debug(f"[PARSE] struct '{name}' implements '{iface_name}'")
 
             body = self._extract_body(stripped, match.end() - 1)
+            _logger.debug(f"[PARSE] struct '{name}' body extracted: {len(body)} chars")
             self._parse_methods(body, name, file_path, line_number)
 
         # class
@@ -812,6 +829,7 @@ class ArkTSParser:
                 file=file_path, line_number=line_number,
                 is_static=is_static, is_private=is_private
             ))
+            _logger.debug(f"[METHOD] '{class_name}.{method_name}' L{line_number} static={is_static} private={is_private} abstract={is_abstract}")
 
             # abstract方法没有方法体
             if is_abstract:
@@ -821,10 +839,12 @@ class ArkTSParser:
             paren_pos = match.end() - 1
             brace_pos = self._skip_params_and_return_type(body_no_dec, paren_pos)
             if brace_pos == -1:
+                _logger.debug(f"[METHOD] '{class_name}.{method_name}' -> no body found (brace_pos=-1)")
                 continue
 
             close_pos = self._find_matching_brace(body_no_dec, brace_pos)
             method_body_stripped = body_no_dec[brace_pos:close_pos + 1]
+            _logger.debug(f"[METHOD] '{class_name}.{method_name}' body: {len(method_body_stripped)} chars")
             self._parse_calls(method_body_stripped, method_name, class_name,
                               file_path, line_number)
 
@@ -905,16 +925,21 @@ class ArkTSParser:
         if stripped[i] == ':':
             i += 1
             angle_count = 0
+            brace_count = 0
             while i < n:
                 if stripped[i] == '<':
                     angle_count += 1
                 elif stripped[i] == '>':
                     angle_count -= 1
                 elif stripped[i] == '{' and angle_count <= 0:
-                    return i
+                    if brace_count == 0:
+                        return i
+                    brace_count += 1
+                elif stripped[i] == '}' and angle_count <= 0:
+                    brace_count -= 1
                 elif stripped[i] == '=' and i + 1 < n and stripped[i + 1] == '>':
                     break
-                elif stripped[i] == ';' and angle_count <= 0:
+                elif stripped[i] == ';' and angle_count <= 0 and brace_count == 0:
                     return -1
                 i += 1
 
@@ -975,6 +1000,7 @@ class ArkTSParser:
                 file=file_path,
                 line_number=call_line
             ))
+            _logger.debug(f"[CALL] '{class_name}.{method_name}' -> '{callee}' (obj={obj_name})")
 
     def _parse_top_level_functions(self, stripped: str, content: str, file_path: str):
         """解析顶层函数"""
@@ -1384,8 +1410,13 @@ if __name__ == "__main__":
     parser.add_argument("--db", "-d", default="code.db", help="数据库路径")
     parser.add_argument("--question", "-q", help="查询问题")
     parser.add_argument("--api-key", "-k", help="硅基流动API密钥")
-    
+    parser.add_argument("--debug", action="store_true", help="开启调试日志")
+
     args = parser.parse_args()
+
+    if args.debug:
+        _logger.setLevel(logging.DEBUG)
+        _logger.info("调试日志已开启")
     
     if args.command == "build":
         if not args.project:
