@@ -147,7 +147,7 @@ class DatabaseManager:
                 line_number INTEGER DEFAULT 0,
                 is_static INTEGER DEFAULT 0,
                 is_private INTEGER DEFAULT 0,
-                PRIMARY KEY (name, class_name, file),
+                PRIMARY KEY (name, class_name, file, line_number),
                 FOREIGN KEY (file) REFERENCES files(path)
             )
         """)
