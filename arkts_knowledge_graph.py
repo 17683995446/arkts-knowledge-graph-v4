@@ -490,6 +490,12 @@ class ArkTSParser:
             re.MULTILINE
         )
 
+        # getter/setter访问器正则
+        self.accessor_pattern = re.compile(
+            r'^[ \t]*(private\s+|public\s+|protected\s+)?(static\s+)?(get|set)\s+(' + _ID_PATTERN + r')\s*\(',
+            re.MULTILINE
+        )
+
         # call正则 (支持泛型方法调用如 get<T>())
         # 注意: <[^>]*> 不能处理嵌套泛型如 <ApiResponse<Product[]>>，改用 <[^{;]*?>
         self.call_pattern = re.compile(
@@ -897,6 +903,43 @@ class ArkTSParser:
             self._parse_calls(method_body_stripped, method_name, class_name,
                               file_path, line_number)
 
+        # 3. 匹配getter/setter访问器
+        for match in self.accessor_pattern.finditer(body_no_dec):
+            accessor_type = match.group(3)  # 'get' 或 'set'
+            prop_name = match.group(4)  # 属性名
+            method_name = f"{accessor_type}_{prop_name}"  # 如 get_value, set_value
+
+            # 只匹配类体顶层（深度=1）
+            match_depth = depth_at_pos.get(match.start(), 0)
+            if match_depth != 1:
+                continue
+
+            # 跳过已匹配的位置
+            if match.start() in matched_positions:
+                continue
+
+            line_number = class_line + body_no_dec[:match.start()].count('\n')
+            is_static = bool(match.group(2))
+            is_private = match.group(1) is not None and 'private' in match.group(1)
+
+            self.methods.append(MethodInfo(
+                name=method_name, class_name=class_name,
+                file=file_path, line_number=line_number,
+                is_static=is_static, is_private=is_private
+            ))
+            _logger.debug(f"[METHOD] '{class_name}.{method_name}' L{line_number} accessor={accessor_type}")
+
+            # 提取accessor体
+            paren_pos = match.end() - 1
+            brace_pos = self._skip_params_and_return_type(body_no_dec, paren_pos)
+            if brace_pos == -1:
+                continue
+
+            close_pos = self._find_matching_brace(body_no_dec, brace_pos)
+            method_body_stripped = body_no_dec[brace_pos:close_pos + 1]
+            self._parse_calls(method_body_stripped, method_name, class_name,
+                              file_path, line_number)
+
     def _skip_params_and_return_type(self, stripped: str, paren_pos: int) -> int:
         """跳过参数列表和返回类型，返回方法体{的位置"""
         i = paren_pos
@@ -1025,7 +1068,6 @@ class ArkTSParser:
         
         # 提取成员变量类型
         member_types = self._extract_member_types()
-        
         for call in self.calls:
             if call.callee_class:
                 # 已有推断，验证并优化
@@ -1048,8 +1090,9 @@ class ArkTSParser:
                 call.callee_class = call.caller_class
                 continue
             
-            # 规则4: callee是当前类的成员变量名 → 推断为变量类型
-            var_type = member_types.get(call.caller_class, {}).get(call.callee, '')
+            # 规则4: callee_class是成员变量名 → 推断为变量类型
+            # 例如: this.simple.get() -> callee_class='simple', 推断为 'List'
+            var_type = member_types.get(call.caller_class, {}).get(call.callee_class, '')
             if var_type and var_type in self._all_class_names:
                 call.callee_class = var_type
                 continue
@@ -1069,10 +1112,12 @@ class ArkTSParser:
             
             stripped = self._strip_comments_and_strings(content)
             
+            # 成员变量模式 - 支持泛型类型（提取基类名）
             member_pattern = re.compile(
                 r'(private|public|protected)?\s*'
                 r'(?:static\s+)?'
-                r'(\w+)\s*:\s*(\w+)'
+                r'(\w+)\s*:\s*'
+                r'(\w+)(?:<[^>]*>)?'  # 捕获类名，可选的泛型参数被忽略
             )
             
             # 在struct和class中查找
