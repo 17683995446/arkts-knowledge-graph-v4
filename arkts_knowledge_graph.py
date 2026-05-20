@@ -528,7 +528,7 @@ class ArkTSParser:
         self._all_class_names: Set[str] = set()
 
     def _strip_comments_and_strings(self, content: str) -> str:
-        """移除注释和字符串，保留换行符"""
+        """移除注释、字符串和正则字面量，保留换行符"""
         result = []
         i = 0
         n = len(content)
@@ -548,6 +548,33 @@ class ArkTSParser:
                     i += 1
                 i += 2
                 result.append(' ')
+            # 正则字面量 /pattern/flags
+            elif c == '/' and i + 1 < n and content[i + 1] != '/' and content[i + 1] != '*':
+                # 判断是否为正则字面量（非除法运算符）
+                # 如果前面是标识符字符、)、]、}，则为除法
+                is_regex = True
+                if i > 0:
+                    prev = content[i - 1]
+                    if prev.isalnum() or prev in '_$)]}':
+                        is_regex = False
+                if is_regex:
+                    result.append(' ')
+                    i += 1
+                    while i < n and content[i] != '/':
+                        if content[i] == '\\':
+                            i += 1  # 跳过转义字符
+                        if content[i] == '\n':
+                            result.append('\n')
+                        i += 1
+                    if i < n:
+                        i += 1  # 跳过结尾的 /
+                    # 跳过flags
+                    while i < n and content[i].isalpha():
+                        i += 1
+                    result.append(' ')
+                else:
+                    result.append(c)
+                    i += 1
             # 模板字符串 `...`
             elif c == '`':
                 result.append(' ')
@@ -589,7 +616,7 @@ class ArkTSParser:
         return ''.join(result)
 
     def _find_matching_brace(self, stripped: str, start: int) -> int:
-        """在stripped内容中找到匹配的}"""
+        """在stripped内容中找到匹配的}，找不到返回-1"""
         brace_count = 0
         i = start
         while i < len(stripped):
@@ -600,7 +627,9 @@ class ArkTSParser:
                 if brace_count == 0:
                     return i
             i += 1
-        return len(stripped) - 1
+        # 花括号不匹配，返回-1让调用方跳过
+        _logger.debug(f"[BRACE] Unmatched brace at pos {start}, returning -1")
+        return -1
 
     def parse_project(self, project_path: str) -> Dict:
         """解析整个项目 - 两遍解析"""
@@ -616,13 +645,13 @@ class ArkTSParser:
 
         # 第一遍：收集所有类/组件名（不解析方法）
         for file_path in arkts_files:
-            if 'node_modules' in str(file_path) or '.git' in str(file_path):
+            if '/node_modules/' in str(file_path) or str(file_path).endswith('/node_modules') or '/.git/' in str(file_path) or str(file_path).endswith('/.git'):
                 continue
             self._scan_declarations(str(file_path))
 
         # 第二遍：完整解析（包括方法，可利用第一遍收集的名称）
         for file_path in arkts_files:
-            if 'node_modules' in str(file_path) or '.git' in str(file_path):
+            if '/node_modules/' in str(file_path) or str(file_path).endswith('/node_modules') or '/.git/' in str(file_path) or str(file_path).endswith('/.git'):
                 continue
             self._full_parse(str(file_path))
 
@@ -721,36 +750,36 @@ class ArkTSParser:
             start_pos = match.start()
             line_number = content[:start_pos].count('\n') + 1
 
-            if any(c.name == name and c.file == file_path for c in self.classes):
-                continue
+            # 同名同文件时，不重复添加类声明，但仍解析方法
+            is_duplicate = any(c.name == name and c.file == file_path for c in self.classes)
+            if not is_duplicate:
+                before = stripped[:start_pos]
+                last_brace = before.rfind('}')
+                region = before[last_brace:] if last_brace != -1 else before
+                is_component = bool(self.component_decorator.search(region))
+                is_entry = bool(self.entry_decorator.search(region))
 
-            before = stripped[:start_pos]
-            last_brace = before.rfind('}')
-            region = before[last_brace:] if last_brace != -1 else before
-            is_component = bool(self.component_decorator.search(region))
-            is_entry = bool(self.entry_decorator.search(region))
-
-            self.classes.append(ClassInfo(
-                name=name, file=file_path,
-                is_component=is_component, is_entry=is_entry,
-                line_number=line_number
-            ))
-
-            if parent:
-                self.inherits.append(InheritRelation(
-                    child_class=name, parent_class=parent,
-                    file=file_path, line_number=line_number
+                self.classes.append(ClassInfo(
+                    name=name, file=file_path,
+                    is_component=is_component, is_entry=is_entry,
+                    line_number=line_number
                 ))
 
-            # 提取implements接口关系
-            implements_str = match.group(6)
-            if implements_str:
-                for iface_name in re.findall(r'\b(\w+)\b', implements_str):
-                    if iface_name not in self.JS_KEYWORDS and iface_name != name:
-                        self.inherits.append(InheritRelation(
-                            child_class=name, parent_class=iface_name,
-                            file=file_path, line_number=line_number
-                        ))
+                if parent:
+                    self.inherits.append(InheritRelation(
+                        child_class=name, parent_class=parent,
+                        file=file_path, line_number=line_number
+                    ))
+
+                # 提取implements接口关系
+                implements_str = match.group(6)
+                if implements_str:
+                    for iface_name in re.findall(r'\b(\w+)\b', implements_str):
+                        if iface_name not in self.JS_KEYWORDS and iface_name != name:
+                            self.inherits.append(InheritRelation(
+                                child_class=name, parent_class=iface_name,
+                                file=file_path, line_number=line_number
+                            ))
 
             body = self._extract_body(stripped, match.end() - 1)
             self._parse_methods(body, name, file_path, line_number)
@@ -760,6 +789,8 @@ class ArkTSParser:
     def _extract_body(self, stripped: str, open_brace: int) -> str:
         """在stripped上提取类体"""
         close = self._find_matching_brace(stripped, open_brace)
+        if close == -1:
+            return ''
         return stripped[open_brace:close + 1]
 
     def _parse_methods(self, body_stripped: str, class_name: str, file_path: str,
@@ -849,6 +880,9 @@ class ArkTSParser:
                 continue
 
             close_pos = self._find_matching_brace(body_no_dec, brace_pos)
+            if close_pos == -1:
+                _logger.debug(f"[METHOD] '{class_name}.{method_name}' -> unmatched brace in body")
+                continue
             method_body_stripped = body_no_dec[brace_pos:close_pos + 1]
             _logger.debug(f"[METHOD] '{class_name}.{method_name}' body: {len(method_body_stripped)} chars")
             self._parse_calls(method_body_stripped, method_name, class_name,
@@ -899,6 +933,8 @@ class ArkTSParser:
                 continue
 
             close_pos = self._find_matching_brace(body_no_dec, brace_pos)
+            if close_pos == -1:
+                continue
             method_body_stripped = body_no_dec[brace_pos:close_pos + 1]
             self._parse_calls(method_body_stripped, method_name, class_name,
                               file_path, line_number)
@@ -936,6 +972,8 @@ class ArkTSParser:
                 continue
 
             close_pos = self._find_matching_brace(body_no_dec, brace_pos)
+            if close_pos == -1:
+                continue
             method_body_stripped = body_no_dec[brace_pos:close_pos + 1]
             self._parse_calls(method_body_stripped, method_name, class_name,
                               file_path, line_number)
@@ -969,20 +1007,49 @@ class ArkTSParser:
             i += 1
             angle_count = 0
             brace_count = 0
+            paren_count = 0
             while i < n:
                 if stripped[i] == '<':
                     angle_count += 1
                 elif stripped[i] == '>':
-                    angle_count -= 1
-                elif stripped[i] == '{' and angle_count <= 0:
+                    if angle_count > 0:
+                        angle_count -= 1
+                elif stripped[i] == '(' and angle_count <= 0:
+                    paren_count += 1
+                elif stripped[i] == ')' and angle_count <= 0:
+                    paren_count -= 1
+                elif stripped[i] == '{' and angle_count <= 0 and paren_count <= 0:
                     if brace_count == 0:
                         return i
                     brace_count += 1
-                elif stripped[i] == '}' and angle_count <= 0:
+                elif stripped[i] == '}' and angle_count <= 0 and paren_count <= 0:
                     brace_count -= 1
-                elif stripped[i] == '=' and i + 1 < n and stripped[i + 1] == '>':
-                    break
-                elif stripped[i] == ';' and angle_count <= 0 and brace_count == 0:
+                elif stripped[i] == '=' and i + 1 < n and stripped[i + 1] == '>' and angle_count <= 0 and paren_count <= 0:
+                    # 返回类型中的箭头函数，如 () => void
+                    # 跳过 => 后面的表达式直到 , ; { 或 )
+                    i += 2
+                    while i < n and stripped[i] not in ',;{})':
+                        if stripped[i] == '(':
+                            # 嵌套箭头函数参数，如 (output: string) => boolean
+                            nested_paren = 1
+                            i += 1
+                            while i < n and nested_paren > 0:
+                                if stripped[i] == '(':
+                                    nested_paren += 1
+                                elif stripped[i] == ')':
+                                    nested_paren -= 1
+                                i += 1
+                            # 跳过 => 和后续表达式
+                            while i < n and stripped[i] in ' \t\n\r':
+                                i += 1
+                            if i < n and stripped[i] == '=' and i + 1 < n and stripped[i + 1] == '>':
+                                i += 2
+                                while i < n and stripped[i] not in ',;{})':
+                                    i += 1
+                        else:
+                            i += 1
+                    continue
+                elif stripped[i] == ';' and angle_count <= 0 and brace_count == 0 and paren_count <= 0:
                     return -1
                 i += 1
 
