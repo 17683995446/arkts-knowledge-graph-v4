@@ -446,9 +446,9 @@ class ArkTSParser:
         self.component_decorator = re.compile(r'@(?:Component|CustomDialog|Reusable)\s*(?:\([^()]*\))?\s*')
         self.entry_decorator = re.compile(r'@Entry\s*(?:\([^()]*\))?\s*')
 
-        # struct正则
+        # struct正则（支持extends和implements）
         self.struct_pattern = re.compile(
-            r'(export\s+)?(default\s+)?struct\s+(' + _ID_PATTERN + r')\s*(?:<[^>]*>)?\s*(?:implements\s+([^{]+))?\s*\{',
+            r'(export\s+)?(default\s+)?struct\s+(' + _ID_PATTERN + r')\s*(?:<[^>]*>)?\s*(?:extends\s+(' + _ID_PATTERN + r'))?\s*(?:implements\s+([^{]+))?\s*\{',
             re.MULTILINE
         )
 
@@ -670,8 +670,16 @@ class ArkTSParser:
                 line_number=line_number
             ))
 
+            # 提取struct的extends继承关系
+            parent_class = match.group(4)
+            if parent_class and parent_class not in self.JS_KEYWORDS:
+                self.inherits.append(InheritRelation(
+                    child_class=name, parent_class=parent_class,
+                    file=file_path, line_number=line_number
+                ))
+
             # 提取struct的implements接口关系
-            implements_str = match.group(4)
+            implements_str = match.group(5)
             if implements_str:
                 for iface_name in re.findall(r'\b(\w+)\b', implements_str):
                     if iface_name not in self.JS_KEYWORDS and iface_name != name:
