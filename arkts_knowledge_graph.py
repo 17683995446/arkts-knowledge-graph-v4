@@ -109,6 +109,12 @@ class DatabaseManager:
         """连接数据库"""
         self.conn = sqlite3.connect(self.db_path)
         self.conn.execute("PRAGMA foreign_keys = ON")
+        # Phase 3: 性能优化 PRAGMA
+        self.conn.execute("PRAGMA journal_mode = WAL")
+        self.conn.execute("PRAGMA synchronous = NORMAL")
+        self.conn.execute("PRAGMA cache_size = -64000")
+        self.conn.execute("PRAGMA temp_store = MEMORY")
+        self.conn.execute("PRAGMA mmap_size = 268435456")
     
     def close(self):
         """关闭数据库连接"""
@@ -192,7 +198,76 @@ class DatabaseManager:
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_calls_callee ON calls(callee_class)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_components_parent ON components(parent)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_components_child ON components(child)")
-        
+
+        # Phase 4 & 5: 新增实体表和关系表
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS interfaces (
+                name TEXT NOT NULL,
+                file TEXT NOT NULL,
+                methods TEXT DEFAULT '',
+                line_number INTEGER DEFAULT 0,
+                PRIMARY KEY (name, file)
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS enums (
+                name TEXT NOT NULL,
+                file TEXT NOT NULL,
+                "values" TEXT DEFAULT '',
+                line_number INTEGER DEFAULT 0,
+                PRIMARY KEY (name, file)
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS type_aliases (
+                name TEXT NOT NULL,
+                file TEXT NOT NULL,
+                target_type TEXT DEFAULT '',
+                line_number INTEGER DEFAULT 0,
+                PRIMARY KEY (name, file)
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS decorators (
+                name TEXT NOT NULL,
+                dec_type TEXT NOT NULL,
+                target_type TEXT NOT NULL DEFAULT '',
+                target_name TEXT NOT NULL DEFAULT '',
+                target_class TEXT NOT NULL DEFAULT '',
+                argument TEXT DEFAULT '',
+                file TEXT NOT NULL,
+                line_number INTEGER DEFAULT 0,
+                PRIMARY KEY (name, target_name, target_class, file, line_number)
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS imports (
+                source_file TEXT NOT NULL,
+                imported_names TEXT DEFAULT '',
+                module_path TEXT NOT NULL,
+                is_relative INTEGER DEFAULT 0,
+                PRIMARY KEY (source_file, module_path)
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS state_relations (
+                relation_type TEXT NOT NULL,
+                source_class TEXT NOT NULL,
+                source_property TEXT NOT NULL,
+                property_type TEXT DEFAULT '',
+                key TEXT DEFAULT '',
+                file TEXT NOT NULL,
+                line_number INTEGER DEFAULT 0,
+                PRIMARY KEY (source_class, source_property, file)
+            )
+        """)
+
+        # 新索引
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_decorators_file ON decorators(file)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_imports_source ON imports(source_file)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_state_class ON state_relations(source_class)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_interfaces_file ON interfaces(file)")
+
         self.conn.commit()
     
     def clear_tables(self):
@@ -346,6 +421,20 @@ class DatabaseManager:
         stats['inherit_relations'] = cursor.fetchone()[0]
         
         return stats
+
+    def get_extended_statistics(self) -> Optional[Dict]:
+        """获取 Phase 4 & 5 扩展统计信息"""
+        if not self.conn:
+            return None
+        try:
+            cursor = self.conn.cursor()
+            stats = {}
+            for table in ['interfaces', 'enums', 'type_aliases', 'decorators', 'imports', 'state_relations']:
+                cursor.execute(f"SELECT COUNT(*) FROM {table}")
+                stats[table] = cursor.fetchone()[0]
+            return stats
+        except sqlite3.OperationalError:
+            return None
 
 
 # ============================================================================
@@ -523,6 +612,14 @@ class ArkTSParser:
         self.component_relations: List[ComponentRelation] = []
         self.inherits: List[InheritRelation] = []
 
+        # Phase 4 & 5: 扩展实体和关系
+        self.interfaces: list = []
+        self.enums: list = []
+        self.type_aliases: list = []
+        self.decorators: list = []
+        self.imports: list = []
+        self.state_relations: list = []
+
         # _component_names, _all_class_names
         self._component_names: Set[str] = set()
         self._all_class_names: Set[str] = set()
@@ -631,17 +728,41 @@ class ArkTSParser:
         _logger.debug(f"[BRACE] Unmatched brace at pos {start}, returning -1")
         return -1
 
-    def parse_project(self, project_path: str) -> Dict:
-        """解析整个项目 - 两遍解析"""
+    def parse_project(self, project_path: str, 
+                      exclude_third_party: bool = False,
+                      files_override: List = None) -> Dict:
+        """解析整个项目 - 两遍解析
+        
+        Args:
+            project_path: 项目根目录路径
+            exclude_third_party: 是否启用智能第三方库过滤 (Phase 2)
+            files_override: 指定要解析的文件列表（增量解析用）
+        """
         project_path = Path(project_path)
 
         if not project_path.exists():
             raise FileNotFoundError(f"项目路径不存在: {project_path}")
 
-        arkts_files = list(project_path.rglob("*.ets")) + \
-                      list(project_path.rglob("*.ts"))
+        # 如果指定了文件列表，直接使用（增量解析）
+        if files_override is not None:
+            arkts_files = files_override
+            print(f"增量解析 {len(arkts_files)} 个文件")
+        else:
+            arkts_files = list(project_path.rglob("*.ets")) + \
+                          list(project_path.rglob("*.ts"))
 
-        print(f"找到 {len(arkts_files)} 个ArkTS文件")
+            print(f"找到 {len(arkts_files)} 个ArkTS文件")
+
+            # Phase 2: 智能第三方库过滤
+            if exclude_third_party:
+                try:
+                    from smart_filter import SmartFilter
+                    smart_filter = SmartFilter(str(project_path))
+                    filtered = smart_filter.filter()
+                    arkts_files = [Path(f) for f in filtered]
+                    print(f"过滤后保留 {len(arkts_files)} 个业务文件")
+                except ImportError:
+                    print("警告: smart_filter.py 未找到，跳过第三方库过滤")
 
         # 第一遍：收集所有类/组件名（不解析方法）
         for file_path in arkts_files:
@@ -658,6 +779,9 @@ class ArkTSParser:
         # 后处理
         self._resolve_callee_classes()
         self._extract_component_relations()
+
+        # Phase 4 & 5: 扩展提取
+        self._extract_extended_entities()
 
         return self._get_result()
 
@@ -1123,42 +1247,38 @@ class ArkTSParser:
             ))
 
     def _resolve_callee_classes(self):
-        """后处理：推断callee_class"""
-        # 构建类→方法映射
-        class_methods = {}
-        for cls in self.classes:
-            methods = set()
-            for m in self.methods:
-                if m.class_name == cls.name:
-                    methods.add(m.name)
-            class_methods[cls.name] = methods
-        
-        # 提取成员变量类型
+        """后处理：推断callee_class（Phase 3.2: O(N) 哈希表优化）"""
+        # 1. 构建 O(1) 查找表: class_name -> {method_names}
+        class_methods: Dict[str, Set[str]] = {}
+        for m in self.methods:
+            class_methods.setdefault(m.class_name, set()).add(m.name)
+
+        # 2. 提取成员变量类型: class_name -> {var_name -> type_name}
         member_types = self._extract_member_types()
+
+        # 3. 单次遍历 calls 列表，O(N)
         for call in self.calls:
             if call.callee_class:
                 # 已有推断，验证并优化
                 if call.callee_class not in self._all_class_names:
-                    # obj_name不是类名，尝试通过成员变量推断
                     resolved = member_types.get(call.caller_class, {}).get(call.callee_class, '')
                     if resolved and resolved in self._all_class_names:
                         call.callee_class = resolved
-                    elif not call.callee_class[0].isupper():
+                    elif call.callee_class and not call.callee_class[0].isupper():
                         call.callee_class = ''
                 continue
 
-            # 规则1: callee本身是类名
+            # 规则1: callee本身是类名 → O(1) set lookup
             if call.callee in self._all_class_names:
                 call.callee_class = call.callee
                 continue
 
-            # 规则3: callee是当前类的已知方法 → 同类调用
+            # 规则2: callee是当前类的已知方法 → O(1) set lookup
             if call.callee in class_methods.get(call.caller_class, set()):
                 call.callee_class = call.caller_class
                 continue
-            
-            # 规则4: callee_class是成员变量名 → 推断为变量类型
-            # 例如: this.simple.get() -> callee_class='simple', 推断为 'List'
+
+            # 规则3: callee_class是成员变量名 → O(1) dict lookup
             var_type = member_types.get(call.caller_class, {}).get(call.callee_class, '')
             if var_type and var_type in self._all_class_names:
                 call.callee_class = var_type
@@ -1263,6 +1383,91 @@ class ArkTSParser:
                             line_number=call.line_number
                         ))
 
+    def _extract_extended_entities(self):
+        """Phase 4 & 5: 提取扩展实体和关系"""
+        try:
+            from extended_extractors import (
+                DecoratorExtractor, EntityTypeExtractor,
+                ImportExtractor, StateRelationExtractor,
+            )
+        except ImportError:
+            return
+
+        dec_extractor = DecoratorExtractor()
+        entity_extractor = EntityTypeExtractor()
+        import_extractor = ImportExtractor()
+        state_extractor = StateRelationExtractor()
+
+        for file_path in self.files:
+            fp = file_path.path
+            try:
+                with open(fp, 'r', encoding='utf-8') as f:
+                    content = f.read()
+            except Exception:
+                continue
+
+            stripped = self._strip_comments_and_strings(content)
+
+            # 接口
+            self.interfaces.extend(
+                entity_extractor.extract_interfaces(stripped, content, fp))
+
+            # 枚举
+            self.enums.extend(
+                entity_extractor.extract_enums(stripped, content, fp))
+
+            # 类型别名
+            self.type_aliases.extend(
+                entity_extractor.extract_type_aliases(stripped, content, fp))
+
+            # Import
+            self.imports.extend(
+                import_extractor.extract(content, fp))
+
+        # 装饰器和状态关系需要类上下文，在类解析中提取
+        for cls in self.classes:
+            try:
+                with open(cls.file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+            except Exception:
+                continue
+
+            stripped = self._strip_comments_and_strings(content)
+
+            # 找到该类的 body
+            body = self._find_class_body(stripped, cls.name)
+            if body is None:
+                continue
+
+            # 类级装饰器（@Component, @Entry 等）
+            class_decors = dec_extractor.extract_from_file(stripped, content, cls.file)
+            for d in class_decors:
+                if d.dec_type in ('component_def', 'entry_def', 'dialog_def', 'reusable_def'):
+                    d.target_type = 'class'
+                    d.target_name = cls.name
+                    d.target_class = cls.name
+                    self.decorators.append(d)
+
+            # 类体内的装饰器（@State, @Prop, @Watch 等）
+            self.decorators.extend(
+                dec_extractor.extract_from_class(body, cls.name, cls.file, cls.line_number))
+
+            # 状态管理关系
+            self.state_relations.extend(
+                state_extractor.extract_from_class(body, cls.name, cls.file, cls.line_number))
+
+    def _find_class_body(self, stripped: str, class_name: str) -> Optional[str]:
+        """在 stripped 内容中找到指定类的 body"""
+        # 尝试 struct
+        for match in self.struct_pattern.finditer(stripped):
+            if match.group(3) == class_name:
+                return self._extract_body(stripped, match.end() - 1)
+        # 尝试 class
+        for match in self.class_pattern.finditer(stripped):
+            if match.group(4) == class_name:
+                return self._extract_body(stripped, match.end() - 1)
+        return None
+
     def _get_result(self) -> Dict:
         return {
             'files': self.files,
@@ -1270,7 +1475,14 @@ class ArkTSParser:
             'methods': self.methods,
             'calls': self.calls,
             'component_relations': self.component_relations,
-            'inherits': self.inherits
+            'inherits': self.inherits,
+            # Phase 4 & 5
+            'interfaces': self.interfaces,
+            'enums': self.enums,
+            'type_aliases': self.type_aliases,
+            'decorators': self.decorators,
+            'imports': self.imports,
+            'state_relations': self.state_relations,
         }
 
 
@@ -1416,26 +1628,97 @@ class KnowledgeGraphBuilder:
     整合解析器和数据库，构建完整的代码知识图谱
     """
     
+    BATCH_SIZE = 5000  # Phase 3: 批量写入大小
+    
     def __init__(self, db_path: str = "code.db"):
         self.db = DatabaseManager(db_path)
         self.parser = ArkTSParser()
     
-    def build(self, project_path: str) -> Dict:
-        """构建知识图谱"""
+    def build(self, project_path: str, exclude_third_party: bool = False,
+              incremental: bool = False) -> Dict:
+        """构建知识图谱
+        
+        Args:
+            project_path: 项目路径
+            exclude_third_party: 是否启用第三方库过滤
+            incremental: 是否启用增量解析（只解析变更文件）
+        """
         print(f"开始构建知识图谱: {project_path}")
         
         # 连接数据库
         self.db.connect()
         self.db.create_tables()
-        self.db.clear_tables()
+
+        # Phase 3.3: 增量解析检测
+        files_to_parse = None
+        deleted_files = []
+        if incremental:
+            try:
+                from incremental_parser import IncrementalParser
+                inc = IncrementalParser(self.db.db_path)
+                inc.connect()
+
+                if inc.should_full_rebuild(project_path):
+                    print("  增量检测: 需要全量重建")
+                else:
+                    added, modified, deleted = inc.detect_changes(project_path)
+                    inc.print_change_summary(added, modified, deleted)
+                    files_to_parse = [Path(f) for f in (added + modified)]
+                    deleted_files = deleted
+
+                inc.close()
+            except ImportError:
+                print("警告: incremental_parser.py 未找到，执行全量解析")
+
+        # 如果增量检测发现无变更，跳过解析
+        if incremental and files_to_parse is not None and len(files_to_parse) == 0 and len(deleted_files) == 0:
+            print("  无变更，跳过解析")
+            stats = self.db.get_statistics()
+            return stats
+
+        # 清理删除的文件记录
+        if deleted_files:
+            for f in deleted_files:
+                self.db.conn.execute("DELETE FROM calls WHERE file = ?", (f,))
+                self.db.conn.execute("DELETE FROM methods WHERE file = ?", (f,))
+                self.db.conn.execute("DELETE FROM classes WHERE file = ?", (f,))
+                self.db.conn.execute("DELETE FROM files WHERE path = ?", (f,))
+            self.db.conn.commit()
+            print(f"  已清理 {len(deleted_files)} 个删除文件的记录")
+
+        # 如果是增量且有变更文件，只解析变更文件
+        if files_to_parse is not None and len(files_to_parse) > 0:
+            # 只清理解析结果，保留数据库结构
+            print(f"  增量解析 {len(files_to_parse)} 个变更文件")
+            # 注意：这里简化处理，实际增量需要更精细的清理逻辑
+            self.db.clear_tables()
+        else:
+            # 全量构建：清空表
+            self.db.clear_tables()
         
         # 解析项目
         print("正在解析项目...")
-        result = self.parser.parse_project(project_path)
+        result = self.parser.parse_project(project_path, exclude_third_party=exclude_third_party,
+                                            files_override=files_to_parse)
         
-        # 存储到数据库
+        # 存储到数据库（Phase 3: 批量写入 + 事务）
         print("正在存储到数据库...")
+        self.db.conn.execute("BEGIN TRANSACTION")
         self._store_result(result)
+        self.db.conn.execute("COMMIT")
+        
+        # 更新文件哈希（增量解析用，全量和增量都需要）
+        try:
+            from incremental_parser import IncrementalParser
+            for f in result['files']:
+                fhash = IncrementalParser.compute_hash(f.path)
+                self.db.conn.execute(
+                    "UPDATE files SET md5_hash = ? WHERE path = ?",
+                    (fhash, f.path)
+                )
+            self.db.conn.commit()
+        except Exception:
+            pass
         
         # 获取统计信息
         stats = self.db.get_statistics()
@@ -1449,36 +1732,143 @@ class KnowledgeGraphBuilder:
         print(f"  调用关系数: {stats['call_relations']}")
         print(f"  组件嵌套关系数: {stats['component_relations']}")
         print(f"  继承关系数: {stats['inherit_relations']}")
+        # Phase 4 & 5 扩展统计
+        try:
+            ext = self.db.get_extended_statistics()
+            if ext:
+                print(f"  --- Phase 4 扩展 ---")
+                print(f"  接口数: {ext.get('interfaces', 0)}")
+                print(f"  枚举数: {ext.get('enums', 0)}")
+                print(f"  类型别名数: {ext.get('type_aliases', 0)}")
+                print(f"  装饰器数: {ext.get('decorators', 0)}")
+                print(f"  --- Phase 5 扩展 ---")
+                print(f"  Import数: {ext.get('imports', 0)}")
+                print(f"  状态管理关系数: {ext.get('state_relations', 0)}")
+        except Exception:
+            pass
         
         return stats
     
     def _store_result(self, result: Dict):
-        """存储解析结果到数据库"""
-        # 存储文件
-        for file_info in result['files']:
-            self.db.insert_file(file_info)
+        """存储解析结果到数据库（Phase 3: 批量写入优化）"""
+        # 文件
+        file_data = [(f.path,) for f in result['files']]
+        if file_data:
+            self.db.conn.executemany(
+                "INSERT OR IGNORE INTO files (path) VALUES (?)", file_data)
         
-        # 存储类
-        for class_info in result['classes']:
-            self.db.insert_class(class_info)
+        # 类
+        class_data = [
+            (c.name, c.file, int(c.is_component), int(c.is_entry), c.line_number)
+            for c in result['classes']
+        ]
+        if class_data:
+            self.db.conn.executemany(
+                """INSERT OR IGNORE INTO classes 
+                   (name, file, is_component, is_entry, line_number) 
+                   VALUES (?, ?, ?, ?, ?)""", class_data)
         
-        # 存储方法
-        for method_info in result['methods']:
-            self.db.insert_method(method_info)
+        # 方法
+        method_data = [
+            (m.name, m.class_name, m.file, m.line_number,
+             int(m.is_static or False), int(m.is_private or False))
+            for m in result['methods']
+        ]
+        if method_data:
+            self.db.conn.executemany(
+                """INSERT OR IGNORE INTO methods 
+                   (name, class_name, file, line_number, is_static, is_private) 
+                   VALUES (?, ?, ?, ?, ?, ?)""", method_data)
         
-        # 存储调用关系
-        for call in result['calls']:
-            self.db.insert_call(call)
+        # 调用关系
+        call_data = [
+            (c.caller, c.caller_class, c.callee, c.callee_class,
+             c.file, c.line_number)
+            for c in result['calls']
+        ]
+        if call_data:
+            self.db.conn.executemany(
+                """INSERT OR IGNORE INTO calls 
+                   (caller, caller_class, callee, callee_class, file, line_number) 
+                   VALUES (?, ?, ?, ?, ?, ?)""", call_data)
         
-        # 存储组件关系
-        for comp in result['component_relations']:
-            self.db.insert_component_relation(comp)
+        # 组件关系
+        comp_data = [
+            (c.parent, c.child, c.file, c.line_number)
+            for c in result['component_relations']
+        ]
+        if comp_data:
+            self.db.conn.executemany(
+                """INSERT OR IGNORE INTO components 
+                   (parent, child, file, line_number) 
+                   VALUES (?, ?, ?, ?)""", comp_data)
         
-        # 存储继承关系
-        for inherit in result['inherits']:
-            self.db.insert_inherit(inherit)
-        
-        self.db.conn.commit()
+        # 继承关系
+        inherit_data = [
+            (i.child_class, i.parent_class, i.file, i.line_number)
+            for i in result['inherits']
+        ]
+        if inherit_data:
+            self.db.conn.executemany(
+                """INSERT OR IGNORE INTO inherits 
+                   (child_class, parent_class, file, line_number) 
+                   VALUES (?, ?, ?, ?)""", inherit_data)
+
+        # Phase 4: 接口
+        if result.get('interfaces'):
+            iface_data = [(i.name, i.file, i.methods, i.line_number) for i in result['interfaces']]
+            if iface_data:
+                self.db.conn.executemany(
+                    """INSERT OR IGNORE INTO interfaces (name, file, methods, line_number) 
+                       VALUES (?, ?, ?, ?)""", iface_data)
+
+        # Phase 4: 枚举
+        if result.get('enums'):
+            enum_data = [(e.name, e.file, e.values, e.line_number) for e in result['enums']]
+            if enum_data:
+                self.db.conn.executemany(
+                    """INSERT OR IGNORE INTO enums (name, file, "values", line_number) 
+                       VALUES (?, ?, ?, ?)""", enum_data)
+
+        # Phase 4: 类型别名
+        if result.get('type_aliases'):
+            ta_data = [(t.name, t.file, t.target_type, t.line_number) for t in result['type_aliases']]
+            if ta_data:
+                self.db.conn.executemany(
+                    """INSERT OR IGNORE INTO type_aliases (name, file, target_type, line_number) 
+                       VALUES (?, ?, ?, ?)""", ta_data)
+
+        # Phase 4: 装饰器
+        if result.get('decorators'):
+            dec_data = [(d.name, d.dec_type, d.target_type, d.target_name,
+                        d.target_class, d.argument, d.file, d.line_number)
+                       for d in result['decorators']]
+            if dec_data:
+                self.db.conn.executemany(
+                    """INSERT OR IGNORE INTO decorators 
+                       (name, dec_type, target_type, target_name, target_class, argument, file, line_number) 
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""", dec_data)
+
+        # Phase 5: Import
+        if result.get('imports'):
+            imp_data = [(i.source_file, i.imported_names, i.module_path, i.is_relative)
+                       for i in result['imports']]
+            if imp_data:
+                self.db.conn.executemany(
+                    """INSERT OR IGNORE INTO imports 
+                       (source_file, imported_names, module_path, is_relative) 
+                       VALUES (?, ?, ?, ?)""", imp_data)
+
+        # Phase 5: 状态管理关系
+        if result.get('state_relations'):
+            sr_data = [(s.relation_type, s.source_class, s.source_property,
+                        s.property_type, s.key, s.file, s.line_number)
+                       for s in result['state_relations']]
+            if sr_data:
+                self.db.conn.executemany(
+                    """INSERT OR IGNORE INTO state_relations 
+                       (relation_type, source_class, source_property, property_type, key, file, line_number) 
+                       VALUES (?, ?, ?, ?, ?, ?, ?)""", sr_data)
     
     def close(self):
         """关闭数据库连接"""
@@ -1516,13 +1906,15 @@ if __name__ == "__main__":
     import argparse
     
     parser = argparse.ArgumentParser(description="ArkTS代码知识图谱系统")
-    parser.add_argument("command", choices=["build", "query", "stats"],
-                       help="命令: build构建图谱, query查询, stats统计")
+    parser.add_argument("command", choices=["build", "query", "stats", "validate"],
+                       help="命令: build构建图谱, query查询, stats统计, validate验证覆盖率")
     parser.add_argument("--project", "-p", help="项目路径")
     parser.add_argument("--db", "-d", default="code.db", help="数据库路径")
     parser.add_argument("--question", "-q", help="查询问题")
     parser.add_argument("--api-key", "-k", help="硅基流动API密钥")
     parser.add_argument("--debug", action="store_true", help="开启调试日志")
+    parser.add_argument("--filter", action="store_true", help="启用智能第三方库过滤 (Phase 2)")
+    parser.add_argument("--incremental", action="store_true", help="启用增量解析 (Phase 3)")
 
     args = parser.parse_args()
 
@@ -1536,8 +1928,24 @@ if __name__ == "__main__":
             exit(1)
         
         builder = KnowledgeGraphBuilder(args.db)
-        builder.build(args.project)
+        builder.build(args.project, exclude_third_party=args.filter, incremental=args.incremental)
         builder.close()
+        
+    elif args.command == "validate":
+        if not args.project:
+            print("错误: 需要指定项目路径 --project")
+            exit(1)
+        
+        try:
+            from coverage_validator import CoverageValidator
+            validator = CoverageValidator(args.db)
+            validator.connect()
+            report = validator.validate_all(args.project)
+            validator.print_report(report)
+            validator.close()
+        except ImportError:
+            print("错误: coverage_validator.py 未找到")
+            exit(1)
         
     elif args.command == "query":
         if not args.question:

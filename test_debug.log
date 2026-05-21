@@ -1,0 +1,213 @@
+[2026-05-21 14:25:32,696] [INFO] [setup:69] ================================================================================
+[2026-05-21 14:25:32,696] [INFO] [setup:70] 开始全面测试
+[2026-05-21 14:25:32,696] [INFO] [setup:71] ================================================================================
+[2026-05-21 14:25:32,697] [INFO] [setup:77] 创建临时测试目录: /tmp/arkts_test_5_0msmsv/test_project
+[2026-05-21 14:25:32,697] [INFO] [test_basic_parsing:136] 
+============================================================
+[2026-05-21 14:25:32,697] [INFO] [test_basic_parsing:137] 测试: 基础解析功能
+[2026-05-21 14:25:32,697] [INFO] [test_basic_parsing:138] ============================================================
+[2026-05-21 14:25:32,697] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/pages/Index.ets
+[2026-05-21 14:25:32,709] [INFO] [test_basic_parsing:176] 结果: [PASS] 基础解析功能 (0.01s)
+[2026-05-21 14:25:32,709] [INFO] [test_database_operations:180] 
+============================================================
+[2026-05-21 14:25:32,709] [INFO] [test_database_operations:181] 测试: 数据库操作
+[2026-05-21 14:25:32,709] [INFO] [test_database_operations:182] ============================================================
+[2026-05-21 14:25:32,726] [INFO] [test_database_operations:211] 结果: [PASS] 数据库操作 (0.02s)
+[2026-05-21 14:25:32,727] [INFO] [test_smart_filter:215] 
+============================================================
+[2026-05-21 14:25:32,727] [INFO] [test_smart_filter:216] 测试: 智能过滤器
+[2026-05-21 14:25:32,727] [INFO] [test_smart_filter:217] ============================================================
+[2026-05-21 14:25:32,731] [INFO] [test_smart_filter:253] 结果: [PASS] 智能过滤器 (0.00s)
+[2026-05-21 14:25:32,731] [INFO] [test_complex_nesting:257] 
+============================================================
+[2026-05-21 14:25:32,731] [INFO] [test_complex_nesting:258] 测试: 复杂嵌套场景
+[2026-05-21 14:25:32,731] [INFO] [test_complex_nesting:259] ============================================================
+[2026-05-21 14:25:32,731] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/pages/DeepNest.ets
+[2026-05-21 14:25:32,738] [INFO] [test_complex_nesting:315] 结果: [PASS] 复杂嵌套场景 (0.01s)
+[2026-05-21 14:25:32,738] [INFO] [test_circular_dependencies:319] 
+============================================================
+[2026-05-21 14:25:32,738] [INFO] [test_circular_dependencies:320] 测试: 循环依赖
+[2026-05-21 14:25:32,738] [INFO] [test_circular_dependencies:321] ============================================================
+[2026-05-21 14:25:32,742] [INFO] [test_circular_dependencies:365] 结果: [PASS] 循环依赖 (0.00s)
+[2026-05-21 14:25:32,742] [INFO] [test_large_file_handling:369] 
+============================================================
+[2026-05-21 14:25:32,743] [INFO] [test_large_file_handling:370] 测试: 大文件处理
+[2026-05-21 14:25:32,743] [INFO] [test_large_file_handling:371] ============================================================
+[2026-05-21 14:25:32,743] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/Large.ets
+[2026-05-21 14:25:32,829] [INFO] [test_large_file_handling:400] 结果: [PASS] 大文件处理 (0.09s)
+[2026-05-21 14:25:32,829] [INFO] [test_special_characters:404] 
+============================================================
+[2026-05-21 14:25:32,829] [INFO] [test_special_characters:405] 测试: 特殊字符
+[2026-05-21 14:25:32,829] [INFO] [test_special_characters:406] ============================================================
+[2026-05-21 14:25:32,829] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/Special.ets
+[2026-05-21 14:25:32,914] [INFO] [test_special_characters:444] 结果: [PASS] 特殊字符 (0.08s)
+[2026-05-21 14:25:32,914] [INFO] [test_empty_files:448] 
+============================================================
+[2026-05-21 14:25:32,914] [INFO] [test_empty_files:449] 测试: 空文件
+[2026-05-21 14:25:32,914] [INFO] [test_empty_files:450] ============================================================
+[2026-05-21 14:25:32,914] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/Empty.ets
+[2026-05-21 14:25:32,914] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/Whitespace.ets
+[2026-05-21 14:25:32,998] [INFO] [test_empty_files:472] 结果: [PASS] 空文件 (0.08s)
+[2026-05-21 14:25:32,998] [INFO] [test_malformed_code:476] 
+============================================================
+[2026-05-21 14:25:32,999] [INFO] [test_malformed_code:477] 测试: 畸形代码
+[2026-05-21 14:25:32,999] [INFO] [test_malformed_code:478] ============================================================
+[2026-05-21 14:25:32,999] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/Malformed.ets
+[2026-05-21 14:25:33,084] [INFO] [test_malformed_code:512] 结果: [PASS] 畸形代码 (0.08s)
+[2026-05-21 14:25:33,084] [INFO] [test_unicode_content:516] 
+============================================================
+[2026-05-21 14:25:33,084] [INFO] [test_unicode_content:517] 测试: Unicode内容
+[2026-05-21 14:25:33,084] [INFO] [test_unicode_content:518] ============================================================
+[2026-05-21 14:25:33,084] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/Unicode.ets
+[2026-05-21 14:25:33,170] [INFO] [test_unicode_content:557] 结果: [PASS] Unicode内容 (0.09s)
+[2026-05-21 14:25:33,171] [INFO] [test_very_long_names:561] 
+============================================================
+[2026-05-21 14:25:33,171] [INFO] [test_very_long_names:562] 测试: 超长名称
+[2026-05-21 14:25:33,171] [INFO] [test_very_long_names:563] ============================================================
+[2026-05-21 14:25:33,171] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/LongNames.ets
+[2026-05-21 14:25:33,261] [INFO] [test_very_long_names:593] 结果: [PASS] 超长名称 (0.09s)
+[2026-05-21 14:25:33,261] [INFO] [test_missing_files:597] 
+============================================================
+[2026-05-21 14:25:33,261] [INFO] [test_missing_files:598] 测试: 缺失文件
+[2026-05-21 14:25:33,261] [INFO] [test_missing_files:599] ============================================================
+[2026-05-21 14:25:33,262] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/MissingRef.ets
+[2026-05-21 14:25:33,351] [INFO] [test_missing_files:623] 结果: [PASS] 缺失文件 (0.09s)
+[2026-05-21 14:25:33,352] [INFO] [test_invalid_paths:627] 
+============================================================
+[2026-05-21 14:25:33,352] [INFO] [test_invalid_paths:628] 测试: 无效路径
+[2026-05-21 14:25:33,352] [INFO] [test_invalid_paths:629] ============================================================
+[2026-05-21 14:25:33,352] [INFO] [test_invalid_paths:650] 结果: [PASS] 无效路径 (0.00s)
+[2026-05-21 14:25:33,352] [INFO] [test_database_corruption:654] 
+============================================================
+[2026-05-21 14:25:33,352] [INFO] [test_database_corruption:655] 测试: 数据库损坏处理
+[2026-05-21 14:25:33,352] [INFO] [test_database_corruption:656] ============================================================
+[2026-05-21 14:25:33,353] [INFO] [test_database_corruption:682] 结果: [PASS] 数据库损坏处理 (0.00s)
+[2026-05-21 14:25:33,353] [INFO] [test_incremental_parsing:686] 
+============================================================
+[2026-05-21 14:25:33,353] [INFO] [test_incremental_parsing:687] 测试: 增量解析
+[2026-05-21 14:25:33,353] [INFO] [test_incremental_parsing:688] ============================================================
+[2026-05-21 14:25:33,353] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/Stable.ets
+[2026-05-21 14:25:33,353] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/Changing.ets
+[2026-05-21 14:25:33,564] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/Changing.ets
+[2026-05-21 14:25:33,678] [INFO] [test_incremental_parsing:719] 结果: [PASS] 增量解析 (0.33s)
+[2026-05-21 14:25:33,685] [INFO] [test_performance_with_many_files:723] 
+============================================================
+[2026-05-21 14:25:33,685] [INFO] [test_performance_with_many_files:724] 测试: 大量文件性能
+[2026-05-21 14:25:33,685] [INFO] [test_performance_with_many_files:725] ============================================================
+[2026-05-21 14:25:33,685] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component0.ets
+[2026-05-21 14:25:33,686] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component1.ets
+[2026-05-21 14:25:33,686] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component2.ets
+[2026-05-21 14:25:33,686] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component3.ets
+[2026-05-21 14:25:33,686] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component4.ets
+[2026-05-21 14:25:33,687] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component5.ets
+[2026-05-21 14:25:33,687] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component6.ets
+[2026-05-21 14:25:33,687] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component7.ets
+[2026-05-21 14:25:33,687] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component8.ets
+[2026-05-21 14:25:33,688] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component9.ets
+[2026-05-21 14:25:33,688] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component10.ets
+[2026-05-21 14:25:33,688] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component11.ets
+[2026-05-21 14:25:33,688] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component12.ets
+[2026-05-21 14:25:33,689] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component13.ets
+[2026-05-21 14:25:33,689] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component14.ets
+[2026-05-21 14:25:33,689] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component15.ets
+[2026-05-21 14:25:33,689] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component16.ets
+[2026-05-21 14:25:33,690] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component17.ets
+[2026-05-21 14:25:33,690] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component18.ets
+[2026-05-21 14:25:33,690] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component19.ets
+[2026-05-21 14:25:33,690] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component20.ets
+[2026-05-21 14:25:33,691] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component21.ets
+[2026-05-21 14:25:33,691] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component22.ets
+[2026-05-21 14:25:33,691] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component23.ets
+[2026-05-21 14:25:33,691] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component24.ets
+[2026-05-21 14:25:33,692] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component25.ets
+[2026-05-21 14:25:33,692] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component26.ets
+[2026-05-21 14:25:33,692] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component27.ets
+[2026-05-21 14:25:33,692] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component28.ets
+[2026-05-21 14:25:33,692] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component29.ets
+[2026-05-21 14:25:33,693] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component30.ets
+[2026-05-21 14:25:33,693] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component31.ets
+[2026-05-21 14:25:33,693] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component32.ets
+[2026-05-21 14:25:33,693] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component33.ets
+[2026-05-21 14:25:33,694] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component34.ets
+[2026-05-21 14:25:33,694] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component35.ets
+[2026-05-21 14:25:33,694] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component36.ets
+[2026-05-21 14:25:33,694] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component37.ets
+[2026-05-21 14:25:33,695] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component38.ets
+[2026-05-21 14:25:33,695] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component39.ets
+[2026-05-21 14:25:33,695] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component40.ets
+[2026-05-21 14:25:33,695] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component41.ets
+[2026-05-21 14:25:33,696] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component42.ets
+[2026-05-21 14:25:33,696] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component43.ets
+[2026-05-21 14:25:33,696] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component44.ets
+[2026-05-21 14:25:33,696] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component45.ets
+[2026-05-21 14:25:33,697] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component46.ets
+[2026-05-21 14:25:33,697] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component47.ets
+[2026-05-21 14:25:33,697] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component48.ets
+[2026-05-21 14:25:33,697] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component49.ets
+[2026-05-21 14:25:33,698] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component50.ets
+[2026-05-21 14:25:33,698] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component51.ets
+[2026-05-21 14:25:33,698] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component52.ets
+[2026-05-21 14:25:33,698] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component53.ets
+[2026-05-21 14:25:33,699] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component54.ets
+[2026-05-21 14:25:33,699] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component55.ets
+[2026-05-21 14:25:33,699] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component56.ets
+[2026-05-21 14:25:33,699] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component57.ets
+[2026-05-21 14:25:33,700] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component58.ets
+[2026-05-21 14:25:33,700] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component59.ets
+[2026-05-21 14:25:33,700] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component60.ets
+[2026-05-21 14:25:33,700] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component61.ets
+[2026-05-21 14:25:33,701] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component62.ets
+[2026-05-21 14:25:33,701] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component63.ets
+[2026-05-21 14:25:33,701] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component64.ets
+[2026-05-21 14:25:33,701] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component65.ets
+[2026-05-21 14:25:33,702] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component66.ets
+[2026-05-21 14:25:33,702] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component67.ets
+[2026-05-21 14:25:33,702] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component68.ets
+[2026-05-21 14:25:33,702] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component69.ets
+[2026-05-21 14:25:33,703] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component70.ets
+[2026-05-21 14:25:33,703] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component71.ets
+[2026-05-21 14:25:33,703] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component72.ets
+[2026-05-21 14:25:33,703] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component73.ets
+[2026-05-21 14:25:33,704] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component74.ets
+[2026-05-21 14:25:33,704] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component75.ets
+[2026-05-21 14:25:33,704] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component76.ets
+[2026-05-21 14:25:33,705] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component77.ets
+[2026-05-21 14:25:33,705] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component78.ets
+[2026-05-21 14:25:33,705] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component79.ets
+[2026-05-21 14:25:33,705] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component80.ets
+[2026-05-21 14:25:33,706] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component81.ets
+[2026-05-21 14:25:33,706] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component82.ets
+[2026-05-21 14:25:33,706] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component83.ets
+[2026-05-21 14:25:33,707] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component84.ets
+[2026-05-21 14:25:33,707] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component85.ets
+[2026-05-21 14:25:33,707] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component86.ets
+[2026-05-21 14:25:33,707] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component87.ets
+[2026-05-21 14:25:33,708] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component88.ets
+[2026-05-21 14:25:33,708] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component89.ets
+[2026-05-21 14:25:33,708] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component90.ets
+[2026-05-21 14:25:33,709] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component91.ets
+[2026-05-21 14:25:33,709] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component92.ets
+[2026-05-21 14:25:33,709] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component93.ets
+[2026-05-21 14:25:33,709] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component94.ets
+[2026-05-21 14:25:33,710] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component95.ets
+[2026-05-21 14:25:33,710] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component96.ets
+[2026-05-21 14:25:33,710] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component97.ets
+[2026-05-21 14:25:33,711] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component98.ets
+[2026-05-21 14:25:33,711] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/components/Component99.ets
+[2026-05-21 14:25:33,891] [INFO] [test_performance_with_many_files:758] 结果: [PASS] 大量文件性能 (0.21s)
+[2026-05-21 14:25:33,891] [INFO] [test_coverage_validation:762] 
+============================================================
+[2026-05-21 14:25:33,891] [INFO] [test_coverage_validation:763] 测试: 覆盖率验证
+[2026-05-21 14:25:33,891] [INFO] [test_coverage_validation:764] ============================================================
+[2026-05-21 14:25:33,892] [DEBUG] [_create_test_file:131] 创建测试文件: /tmp/arkts_test_5_0msmsv/test_project/Main.ets
+[2026-05-21 14:25:34,202] [INFO] [test_coverage_validation:804] 结果: [PASS] 覆盖率验证 (0.31s)
+[2026-05-21 14:25:34,219] [INFO] [teardown:83] 清理临时目录: /tmp/arkts_test_5_0msmsv
+[2026-05-21 14:25:34,219] [INFO] [print_summary:808] 
+================================================================================
+[2026-05-21 14:25:34,219] [INFO] [print_summary:809] 测试摘要
+[2026-05-21 14:25:34,219] [INFO] [print_summary:810] ================================================================================
+[2026-05-21 14:25:34,219] [INFO] [print_summary:816] 总计: 17 个测试
+[2026-05-21 14:25:34,219] [INFO] [print_summary:817] 通过: 17 个
+[2026-05-21 14:25:34,219] [INFO] [print_summary:818] 失败: 0 个
+[2026-05-21 14:25:34,219] [INFO] [print_summary:819] 通过率: 100.0%
+[2026-05-21 14:25:34,219] [INFO] [print_summary:827] ================================================================================
