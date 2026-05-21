@@ -120,6 +120,15 @@ class DatabaseManager:
         """关闭数据库连接"""
         if self.conn:
             self.conn.close()
+            self.conn = None
+
+    def __enter__(self):
+        self.connect()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False
     
     def create_tables(self):
         """创建数据库表结构"""
@@ -129,7 +138,8 @@ class DatabaseManager:
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS files (
                 path TEXT PRIMARY KEY,
-                line_count INTEGER DEFAULT 0
+                line_count INTEGER DEFAULT 0,
+                md5_hash TEXT DEFAULT ''
             )
         """)
         
@@ -273,9 +283,13 @@ class DatabaseManager:
     def clear_tables(self):
         """清空所有表数据"""
         cursor = self.conn.cursor()
-        tables = ['calls', 'components', 'inherits', 'methods', 'classes', 'files']
+        tables = [
+            'calls', 'components', 'inherits', 'methods', 'classes', 'files',
+            'interfaces', 'enums', 'type_aliases', 'decorators',
+            'imports', 'state_relations'
+        ]
         for table in tables:
-            cursor.execute(f"DELETE FROM {table}")
+            cursor.execute(f"DELETE FROM [{table}]")
         self.conn.commit()
     
     def insert_file(self, file_info: FileInfo):
@@ -385,8 +399,27 @@ class DatabaseManager:
    - line_number: 行号
 """
     
+    # 只允许执行的SQL关键字（安全白名单）
+    _ALLOWED_SQL_STARTS = ('SELECT', 'WITH', 'EXPLAIN')
+
     def execute_query(self, sql: str) -> List[Tuple]:
-        """执行SQL查询"""
+        """执行SQL查询（带安全过滤）"""
+        sql_upper = sql.strip().upper()
+        if not any(sql_upper.startswith(kw) for kw in self._ALLOWED_SQL_STARTS):
+            raise ValueError(f"只允许执行查询语句(SELECT/WITH/EXPLAIN)，拒绝: {sql[:50]}")
+        # 额外检查危险操作
+        dangerous = ['DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'CREATE', 'ATTACH', 'DETACH']
+        if any(kw in sql_upper for kw in dangerous):
+            raise ValueError(f"查询中包含不允许的操作: {sql[:50]}")
+        # 检查分号（防止多语句注入，如 SELECT ...; DROP TABLE ...）
+        # 去除字符串内的分号后检查
+        cleaned = re.sub(r"'[^']*'", '', sql)
+        cleaned = re.sub(r'"[^"]*"', '', cleaned)
+        if ';' in cleaned:
+            raise ValueError(f"查询中包含分号，可能存在多语句注入: {sql[:50]}")
+        # 检查注释符号（防止注释注入，如 ' OR 1=1; --）
+        if '--' in sql:
+            raise ValueError(f"查询中包含注释符号，可能存在注入: {sql[:50]}")
         cursor = self.conn.cursor()
         cursor.execute(sql)
         return cursor.fetchall()
@@ -543,22 +576,22 @@ class ArkTSParser:
         self.component_decorator = re.compile(r'@(?:Component|CustomDialog|Reusable)\s*(?:\([^()]*\))?\s*')
         self.entry_decorator = re.compile(r'@Entry\s*(?:\([^()]*\))?\s*')
 
-        # struct正则（支持extends和implements）
+        # struct正则（支持extends和implements，支持嵌套泛型）
         self.struct_pattern = re.compile(
-            r'(export\s+)?(default\s+)?struct\s+(' + _ID_PATTERN + r')\s*(?:<[^>]*>)?\s*(?:extends\s+(' + _ID_PATTERN + r'))?\s*(?:implements\s+([^{]+))?\s*\{',
+            r'(export\s+)?(default\s+)?struct\s+(' + _ID_PATTERN + r')\s*(?:<[^{}]*?>\s*)?(?:extends\s+(' + _ID_PATTERN + r'))?\s*(?:implements\s+([^{]+))?\s*\{',
             re.MULTILINE
         )
 
-        # class正则
+        # class正则（支持嵌套泛型）
         self.class_pattern = re.compile(
-            r'(export\s+)?(default\s+)?(abstract\s+)?class\s+(' + _ID_PATTERN + r')\s*(?:<[^>]*>)?\s*(?:extends\s+(\w+)(?:\s*<[^>]*>)?)?\s*(?:implements\s+([^{]+))?\s*\{',
+            r'(export\s+)?(default\s+)?(abstract\s+)?class\s+(' + _ID_PATTERN + r')\s*(?:<[^{}]*?>\s*)?(?:extends\s+(\w+)(?:\s*<[^{}]*?>\s*)?)?\s*(?:implements\s+([^{]+))?\s*\{',
             re.MULTILINE
         )
 
-        # method正则（行首锚定，支持abstract/override关键字）
+        # method正则（行首锚定，支持abstract/override关键字，支持嵌套泛型）
         # 注意：不包含装饰器匹配，装饰器在 _parse_methods 中预先移除
         self.method_pattern = re.compile(
-            r'^[ \t]*(private\s+|public\s+|protected\s+)?(static\s+)?(async\s+)?(abstract\s+|override\s+)?(' + _ID_PATTERN + r')\s*(?:<[^>]*>\s*)?\(',
+            r'^[ \t]*(private\s+|public\s+|protected\s+)?(static\s+)?(async\s+)?(abstract\s+|override\s+)?(' + _ID_PATTERN + r')\s*(?:<[^{}]*?>\s*)?\(',
             re.MULTILINE
         )
 
@@ -585,10 +618,9 @@ class ArkTSParser:
             re.MULTILINE
         )
 
-        # call正则 (支持泛型方法调用如 get<T>())
-        # 注意: <[^>]*> 不能处理嵌套泛型如 <ApiResponse<Product[]>>，改用 <[^{;]*?>
+        # call正则 (支持嵌套泛型方法调用如 get<T<A>>())
         self.call_pattern = re.compile(
-            r'(?:(\w+)\s*\.\s*)?(\w+)\s*(?:<[^{;]*?>\s*)?\(',
+            r'(?:(\w+)\s*\.\s*)?(\w+)\s*(?:<[^{};]*?>\s*)?\(',
             re.MULTILINE
         )
 
@@ -598,9 +630,9 @@ class ArkTSParser:
             re.MULTILINE
         )
 
-        # 顶层函数正则（支持复杂泛型如 <T extends (...args: any[]) => Promise<any>>）
+        # 顶层函数正则（支持复杂嵌套泛型）
         self.top_func_pattern = re.compile(
-            r'(export\s+)?(async\s+)?function\s+(' + _ID_PATTERN + r')\s*(?:<[^{]*?>\s*)?\(',
+            r'(export\s+)?(async\s+)?function\s+(' + _ID_PATTERN + r')\s*(?:<[^{}]*?>\s*)?\(',
             re.MULTILINE
         )
 
@@ -658,9 +690,9 @@ class ArkTSParser:
                     result.append(' ')
                     i += 1
                     while i < n and content[i] != '/':
-                        if content[i] == '\\':
+                        if content[i] == '\\' and i + 1 < n:
                             i += 1  # 跳过转义字符
-                        if content[i] == '\n':
+                        if i < n and content[i] == '\n':
                             result.append('\n')
                         i += 1
                     if i < n:
@@ -677,9 +709,41 @@ class ArkTSParser:
                 result.append(' ')
                 i += 1
                 while i < n and content[i] != '`':
-                    if content[i] == '\\':
-                        i += 1
-                    if content[i] == '\n':
+                    if content[i] == '\\' and i + 1 < n:
+                        i += 1  # 跳过转义字符
+                        result.append(' ')
+                    elif content[i] == '$' and i + 1 < n and content[i + 1] == '{':
+                        # 模板表达式 ${...}，需要处理嵌套花括号
+                        result.append(' ')
+                        i += 2  # 跳过 ${
+                        brace_depth = 1
+                        while i < n and brace_depth > 0:
+                            if content[i] == '{':
+                                brace_depth += 1
+                            elif content[i] == '}':
+                                brace_depth -= 1
+                                if brace_depth == 0:
+                                    i += 1
+                                    break
+                            elif content[i] == "'" or content[i] == '"':
+                                # 跳过模板表达式内的字符串
+                                quote = content[i]
+                                i += 1
+                                while i < n and content[i] != quote:
+                                    if content[i] == '\\' and i + 1 < n:
+                                        i += 1
+                                    i += 1
+                            elif content[i] == '`':
+                                # 跳过模板表达式内的嵌套模板字符串
+                                i += 1
+                                while i < n and content[i] != '`':
+                                    if content[i] == '\\' and i + 1 < n:
+                                        i += 1
+                                    i += 1
+                            result.append(' ')
+                            i += 1
+                        continue
+                    if i < n and content[i] == '\n':
                         result.append('\n')
                     i += 1
                 if i < n:
@@ -690,7 +754,7 @@ class ArkTSParser:
                 result.append(' ')
                 i += 1
                 while i < n and content[i] != '"':
-                    if content[i] == '\\':
+                    if content[i] == '\\' and i + 1 < n:
                         i += 1
                     i += 1
                 if i < n:
@@ -701,7 +765,7 @@ class ArkTSParser:
                 result.append(' ')
                 i += 1
                 while i < n and content[i] != "'":
-                    if content[i] == '\\':
+                    if content[i] == '\\' and i + 1 < n:
                         i += 1
                     i += 1
                 if i < n:
@@ -790,7 +854,7 @@ class ArkTSParser:
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
-        except:
+        except (OSError, IOError, UnicodeDecodeError):
             return
 
         self.files.append(FileInfo(path=file_path))
@@ -818,7 +882,7 @@ class ArkTSParser:
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
-        except:
+        except (OSError, IOError, UnicodeDecodeError):
             return
 
         stripped = self._strip_comments_and_strings(content)
@@ -1237,7 +1301,7 @@ class ArkTSParser:
             _logger.debug(f"[CALL] '{class_name}.{method_name}' -> '{callee}' (obj={obj_name})")
 
     def _parse_top_level_functions(self, stripped: str, content: str, file_path: str):
-        """解析顶层函数"""
+        """解析顶层函数及其调用关系"""
         for match in self.top_func_pattern.finditer(stripped):
             func_name = match.group(3)
             line_number = content[:match.start()].count('\n') + 1
@@ -1245,6 +1309,22 @@ class ArkTSParser:
                 name=func_name, class_name='',
                 file=file_path, line_number=line_number
             ))
+            _logger.debug(f"[TOP_FUNC] '{func_name}' L{line_number}")
+
+            # 提取顶层函数体并解析其中的调用关系
+            paren_pos = match.end() - 1
+            brace_pos = self._skip_params_and_return_type(stripped, paren_pos)
+            if brace_pos == -1:
+                _logger.debug(f"[TOP_FUNC] '{func_name}' -> no body found")
+                continue
+
+            close_pos = self._find_matching_brace(stripped, brace_pos)
+            if close_pos == -1:
+                _logger.debug(f"[TOP_FUNC] '{func_name}' -> unmatched brace in body")
+                continue
+            func_body_stripped = stripped[brace_pos:close_pos + 1]
+            _logger.debug(f"[TOP_FUNC] '{func_name}' body: {len(func_body_stripped)} chars")
+            self._parse_calls(func_body_stripped, func_name, '', file_path, line_number)
 
     def _resolve_callee_classes(self):
         """后处理：推断callee_class（Phase 3.2: O(N) 哈希表优化）"""
@@ -1294,17 +1374,17 @@ class ArkTSParser:
             try:
                 with open(cls.file, 'r', encoding='utf-8') as f:
                     content = f.read()
-            except:
+            except (OSError, IOError, UnicodeDecodeError):
                 continue
             
             stripped = self._strip_comments_and_strings(content)
             
-            # 成员变量模式 - 支持泛型类型（提取基类名）
+            # 成员变量模式 - 支持泛型类型、联合类型、可选类型、函数类型
             member_pattern = re.compile(
                 r'(private|public|protected)?\s*'
                 r'(?:static\s+)?'
                 r'(\w+)\s*:\s*'
-                r'(\w+)(?:<[^>]*>)?'  # 捕获类名，可选的泛型参数被忽略
+                r'([\w<>,\s|&?()]+\w)'  # 捕获类型表达式（含联合|、可选?、泛型<>、函数()）
             )
             
             # 在struct和class中查找
@@ -1328,45 +1408,63 @@ class ArkTSParser:
     
     def _scan_members_in_body(self, body: str, pattern, member_map: Dict):
         """在类体中扫描成员变量（只在花括号深度=1时）"""
-        depth = 0
-        for i in range(len(body)):
-            if body[i] == '{':
-                depth += 1
-            elif body[i] == '}':
-                depth -= 1
-        
-        # 预计算每个位置的深度
+        # 预计算每个位置的深度（单次遍历）
         depths = []
         d = 0
         for ch in body:
-            if ch == '{': d += 1
-            elif ch == '}': d -= 1
+            if ch == '{':
+                d += 1
+            elif ch == '}':
+                d -= 1
             depths.append(d)
         
         for m in pattern.finditer(body):
             pos = m.start()
             if depths[pos] == 1:
                 var_name = m.group(2)
-                type_name = m.group(3)
-                if var_name not in self.JS_KEYWORDS and type_name not in self.JS_KEYWORDS:
-                    if type_name[0].isupper():
+                type_expr = m.group(3).strip()
+                if var_name not in self.JS_KEYWORDS:
+                    # 从类型表达式中提取第一个大写开头的标识符作为类型名
+                    # 处理联合类型 string | number | MyClass、可选类型 MyClass?、泛型 List<MyClass>
+                    type_name = ''
+                    # 尝试提取大写开头的类名
+                    type_candidates = re.findall(r'\b([A-Z]\w*)', type_expr)
+                    for candidate in type_candidates:
+                        if candidate not in self.JS_KEYWORDS and candidate not in self.ARKTS_KEYWORDS:
+                            type_name = candidate
+                            break
+                    if type_name:
                         member_map[var_name] = type_name
 
     def _extract_component_relations(self):
-        """后处理：提取组件嵌套关系（去重）"""
+        """后处理：提取组件嵌套关系（去重）
+        
+        从多个来源提取组件关系：
+        1. build() 方法中的组件使用
+        2. @Builder 装饰的方法中的组件使用
+        3. ForEach/LazyForEach 闭包中的组件使用
+        """
         seen = set()
 
         for class_info in self.classes:
             if not class_info.is_component:
                 continue
 
-            build_calls = [
+            # 收集该组件所有方法中的调用
+            class_calls = [
                 c for c in self.calls
-                if c.caller == 'build' and c.caller_class == class_info.name
+                if c.caller_class == class_info.name
             ]
 
-            for call in build_calls:
+            for call in class_calls:
                 callee = call.callee
+                # 跳过UI链式属性方法
+                if callee in self.UI_CHAIN_PROPERTIES:
+                    continue
+                # 跳过JS全局方法
+                if callee in self.JS_GLOBALS:
+                    continue
+
                 is_component = (
                     callee in self._component_names or
                     any(c.name == callee and c.is_component for c in self.classes)
@@ -1382,6 +1480,7 @@ class ArkTSParser:
                             file=class_info.file,
                             line_number=call.line_number
                         ))
+                        _logger.debug(f"[COMP_REL] {class_info.name} -> {callee} (from {call.caller})")
 
     def _extract_extended_entities(self):
         """Phase 4 & 5: 提取扩展实体和关系"""
@@ -1688,10 +1787,17 @@ class KnowledgeGraphBuilder:
 
         # 如果是增量且有变更文件，只解析变更文件
         if files_to_parse is not None and len(files_to_parse) > 0:
-            # 只清理解析结果，保留数据库结构
+            # 增量模式：只删除变更文件的旧记录，不清空整个数据库
             print(f"  增量解析 {len(files_to_parse)} 个变更文件")
-            # 注意：这里简化处理，实际增量需要更精细的清理逻辑
-            self.db.clear_tables()
+            from incremental_parser import IncrementalParser
+            inc = IncrementalParser(self.db.db_path)
+            inc.conn = self.db.conn  # 复用已有连接
+            for f in files_to_parse:
+                fpath = str(f)
+                inc.delete_file_records(fpath)
+                _logger.debug(f"[INCREMENTAL] Deleted records for changed file: {fpath}")
+            # 提交删除操作，避免与后续事务冲突
+            self.db.conn.commit()
         else:
             # 全量构建：清空表
             self.db.clear_tables()
@@ -1703,9 +1809,13 @@ class KnowledgeGraphBuilder:
         
         # 存储到数据库（Phase 3: 批量写入 + 事务）
         print("正在存储到数据库...")
-        self.db.conn.execute("BEGIN TRANSACTION")
-        self._store_result(result)
-        self.db.conn.execute("COMMIT")
+        try:
+            self.db.conn.execute("BEGIN TRANSACTION")
+            self._store_result(result)
+            self.db.conn.execute("COMMIT")
+        except Exception:
+            self.db.conn.execute("ROLLBACK")
+            raise
         
         # 更新文件哈希（增量解析用，全量和增量都需要）
         try:
