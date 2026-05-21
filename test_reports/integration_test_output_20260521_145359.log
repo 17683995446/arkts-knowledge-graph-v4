@@ -1,0 +1,192 @@
+test_circular_dependency_handling (__main__.TestParserToDatabaseIntegration)
+测试循环依赖处理 ... ok
+test_complex_project_with_inheritance (__main__.TestParserToDatabaseIntegration)
+测试带继承的复杂项目 ... ok
+test_error_recovery (__main__.TestParserToDatabaseIntegration)
+测试错误恢复 ... ok
+test_simple_project_pipeline (__main__.TestParserToDatabaseIntegration)
+测试简单项目的完整流程 ... ok
+test_large_project_performance (__main__.TestMultiFileParsing)
+测试大型项目性能 ... ok
+test_parallel_parsing_consistency (__main__.TestMultiFileParsing)
+测试并行解析一致性 ... ok
+test_clear_tables_transaction (__main__.TestDatabaseTransactionConsistency)
+测试清空表的事务性 ... ok
+test_transaction_commit (__main__.TestDatabaseTransactionConsistency)
+测试事务提交 ... FAIL
+test_transaction_rollback (__main__.TestDatabaseTransactionConsistency)
+测试事务回滚 ... ok
+test_builder_error_handling (__main__.TestErrorPropagation)
+测试构建器错误处理 ... ERROR
+test_database_error_handling (__main__.TestErrorPropagation)
+测试数据库错误处理 ... ok
+test_parser_error_handling (__main__.TestErrorPropagation)
+测试解析器错误处理 ... ERROR
+test_foreign_key_integrity (__main__.TestDataIntegrity)
+测试外键完整性 ... ok
+test_line_number_consistency (__main__.TestDataIntegrity)
+测试行号一致性 ... ok
+test_unique_constraints (__main__.TestDataIntegrity)
+测试唯一性约束 ... ok
+test_database_insertion_performance (__main__.TestPerformance)
+测试数据库插入性能 ... ERROR
+test_parsing_performance (__main__.TestPerformance)
+测试解析性能 ... ok
+
+======================================================================
+ERROR: test_builder_error_handling (__main__.TestErrorPropagation)
+测试构建器错误处理
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/arkts-knowledge-graph-v4/test_integration.py", line 563, in test_builder_error_handling
+    stats = builder.build('/nonexistent/project')
+  File "/workspace/arkts-knowledge-graph-v4/arkts_knowledge_graph.py", line 1322, in build
+    result = self.parser.parse_project(project_path)
+  File "/workspace/arkts-knowledge-graph-v4/arkts_knowledge_graph.py", line 604, in parse_project
+    raise FileNotFoundError(f"项目路径不存在: {project_path}")
+FileNotFoundError: 项目路径不存在: /nonexistent/project
+
+======================================================================
+ERROR: test_parser_error_handling (__main__.TestErrorPropagation)
+测试解析器错误处理
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/arkts-knowledge-graph-v4/test_integration.py", line 542, in test_parser_error_handling
+    result = parser.parse_project('/nonexistent/directory')
+  File "/workspace/arkts-knowledge-graph-v4/arkts_knowledge_graph.py", line 604, in parse_project
+    raise FileNotFoundError(f"项目路径不存在: {project_path}")
+FileNotFoundError: 项目路径不存在: /nonexistent/directory
+
+======================================================================
+ERROR: test_database_insertion_performance (__main__.TestPerformance)
+测试数据库插入性能
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/arkts-knowledge-graph-v4/test_integration.py", line 686, in test_database_insertion_performance
+    db.insert_class(ClassInfo(
+  File "/workspace/arkts-knowledge-graph-v4/arkts_knowledge_graph.py", line 217, in insert_class
+    cursor.execute(
+sqlite3.IntegrityError: FOREIGN KEY constraint failed
+
+======================================================================
+FAIL: test_transaction_commit (__main__.TestDatabaseTransactionConsistency)
+测试事务提交
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/arkts-knowledge-graph-v4/test_integration.py", line 499, in test_transaction_commit
+    self.assertEqual(cursor.fetchone()[0], 1)
+AssertionError: 0 != 1
+
+----------------------------------------------------------------------
+Ran 17 tests in 0.614s
+
+FAILED (failures=1, errors=3)
+找到 2 个ArkTS文件
+开始构建知识图谱: /tmp/tmpkfdahjw_
+正在解析项目...
+找到 4 个ArkTS文件
+正在存储到数据库...
+
+构建完成！统计信息:
+  文件数: 4
+  类数: 4
+  组件数: 4
+  入口组件数: 1
+  方法数: 7
+  调用关系数: 6
+  组件嵌套关系数: 2
+  继承关系数: 2
+开始构建知识图谱: /tmp/tmpuylcc_w1
+正在解析项目...
+找到 2 个ArkTS文件
+正在存储到数据库...
+
+构建完成！统计信息:
+  文件数: 2
+  类数: 2
+  组件数: 2
+  入口组件数: 0
+  方法数: 2
+  调用关系数: 2
+  组件嵌套关系数: 0
+  继承关系数: 0
+开始构建知识图谱: /tmp/tmpsma8h0z3
+正在解析项目...
+找到 3 个ArkTS文件
+正在存储到数据库...
+
+构建完成！统计信息:
+  文件数: 3
+  类数: 3
+  组件数: 3
+  入口组件数: 1
+  方法数: 3
+  调用关系数: 2
+  组件嵌套关系数: 2
+  继承关系数: 0
+开始构建知识图谱: /tmp/tmpt0gtvs67
+正在解析项目...
+找到 50 个ArkTS文件
+正在存储到数据库...
+
+构建完成！统计信息:
+  文件数: 50
+  类数: 50
+  组件数: 50
+  入口组件数: 0
+  方法数: 100
+  调用关系数: 0
+  组件嵌套关系数: 0
+  继承关系数: 0
+找到 3 个ArkTS文件
+找到 3 个ArkTS文件
+找到 3 个ArkTS文件
+开始构建知识图谱: /nonexistent/project
+正在解析项目...
+开始构建知识图谱: /tmp/tmp_cu3s9nx
+正在解析项目...
+找到 3 个ArkTS文件
+正在存储到数据库...
+
+构建完成！统计信息:
+  文件数: 3
+  类数: 3
+  组件数: 3
+  入口组件数: 1
+  方法数: 3
+  调用关系数: 2
+  组件嵌套关系数: 2
+  继承关系数: 0
+开始构建知识图谱: /tmp/tmpxsre37q2
+正在解析项目...
+找到 3 个ArkTS文件
+正在存储到数据库...
+
+构建完成！统计信息:
+  文件数: 3
+  类数: 3
+  组件数: 3
+  入口组件数: 1
+  方法数: 3
+  调用关系数: 2
+  组件嵌套关系数: 2
+  继承关系数: 0
+找到 100 个ArkTS文件
+
+解析100个文件耗时: 0.07秒
+
+======================================================================
+集成测试总结
+======================================================================
+运行测试数: 17
+通过: 13
+失败: 1
+错误: 3
+
+失败的测试:
+  - test_transaction_commit (__main__.TestDatabaseTransactionConsistency)
+
+错误的测试:
+  - test_builder_error_handling (__main__.TestErrorPropagation)
+  - test_parser_error_handling (__main__.TestErrorPropagation)
+  - test_database_insertion_performance (__main__.TestPerformance)

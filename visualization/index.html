@@ -1,1408 +1,2304 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ArkTS 代码知识图谱可视化</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        :root {
-            --color-coral-50: #FED2C7;
-            --color-coral-100: #FEB9AA;
-            --color-coral-500: #F87254;
-            --color-coral-600: #EE522F;
-            --color-teal-50: #BFFDFD;
-            --color-teal-100: #9AF9F9;
-            --color-teal-500: #3CDDDD;
-            --color-teal-600: #20C5C5;
-            --color-indigo-50: #DAD1FF;
-            --color-indigo-100: #CABDFF;
-            --color-indigo-500: #957AFF;
-            --color-indigo-600: #7D5DFD;
-            --color-amber-50: #FEE6C3;
-            --color-amber-100: #FCD8A1;
-            --color-amber-500: #EDAA45;
-            --color-lime-50: #E3FDB9;
-            --color-lime-100: #CFF98A;
-            --color-lime-500: #91DC18;
-            --color-slate-50: #F2F2F2;
-            --color-slate-100: #E3E3E3;
-            --color-slate-200: #D6D6D6;
-            --color-slate-300: #C7C7C7;
-            --color-slate-400: #BABABA;
-            --color-slate-500: #ABABAB;
-            --color-slate-600: #8A8A8A;
-            --color-slate-700: #686868;
-            --color-slate-800: #474747;
-            --color-slate-900: #262626;
-        }
-        
-        * {
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
-            min-height: 100vh;
-            color: var(--color-slate-900);
-        }
-        
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
-        }
-        
-        .metric-card {
-            background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
-            border: 1px solid var(--color-slate-200);
-            transition: all 0.3s ease;
-        }
-        
-        .metric-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        }
-        
-        .metric-card.coral { border-left: 4px solid var(--color-coral-500); }
-        .metric-card.teal { border-left: 4px solid var(--color-teal-500); }
-        .metric-card.indigo { border-left: 4px solid var(--color-indigo-500); }
-        .metric-card.amber { border-left: 4px solid var(--color-amber-500); }
-        .metric-card.lime { border-left: 4px solid var(--color-lime-500); }
-        .metric-card.slate { border-left: 4px solid var(--color-slate-500); }
-        
-        .nav-tab {
-            position: relative;
-            transition: all 0.3s ease;
-        }
-        
-        .nav-tab::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            width: 0;
-            height: 2px;
-            background: var(--color-indigo-500);
-            transition: width 0.3s ease;
-        }
-        
-        .nav-tab.active::after,
-        .nav-tab:hover::after {
-            width: 100%;
-        }
-        
-        .nav-tab.active {
-            color: var(--color-indigo-600);
-            font-weight: 500;
-        }
-        
-        #graph-container {
-            width: 100%;
-            height: 600px;
-            border-radius: 12px;
-            overflow: hidden;
-        }
-        
-        .entity-card {
-            background: #fff;
-            border: 1px solid var(--color-slate-200);
-            border-radius: 10px;
-            padding: 16px;
-            transition: all 0.2s ease;
-            cursor: pointer;
-        }
-        
-        .entity-card:hover {
-            border-color: var(--color-indigo-300);
-            box-shadow: 0 4px 16px rgba(125, 93, 253, 0.1);
-        }
-        
-        .entity-card.component {
-            border-left: 3px solid var(--color-coral-500);
-        }
-        
-        .entity-card.class {
-            border-left: 3px solid var(--color-teal-500);
-        }
-        
-        .entity-card.method {
-            border-left: 3px solid var(--color-indigo-500);
-        }
-        
-        .entity-card.file {
-            border-left: 3px solid var(--color-amber-500);
-        }
-        
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 500;
-        }
-        
-        .badge.component { background: var(--color-coral-50); color: var(--color-coral-600); }
-        .badge.entry { background: var(--color-lime-50); color: #2F4B02; }
-        .badge.class { background: var(--color-teal-50); color: #067A7A; }
-        .badge.method { background: var(--color-indigo-50); color: #5B36F2; }
-        .badge.file { background: var(--color-amber-50); color: #7F4E05; }
-        
-        .search-input {
-            background: #fff;
-            border: 1px solid var(--color-slate-300);
-            border-radius: 8px;
-            padding: 10px 16px;
-            font-size: 14px;
-            transition: all 0.2s ease;
-            width: 100%;
-        }
-        
-        .search-input:focus {
-            outline: none;
-            border-color: var(--color-indigo-400);
-            box-shadow: 0 0 0 3px rgba(125, 93, 253, 0.1);
-        }
-        
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border: none;
-        }
-        
-        .btn-primary {
-            background: var(--color-indigo-500);
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background: var(--color-indigo-600);
-        }
-        
-        .btn-secondary {
-            background: var(--color-slate-100);
-            color: var(--color-slate-700);
-            border: 1px solid var(--color-slate-300);
-        }
-        
-        .btn-secondary:hover {
-            background: var(--color-slate-200);
-        }
-        
-        .code-block {
-            background: #1e1e1e;
-            color: #d4d4d4;
-            border-radius: 8px;
-            padding: 16px;
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 13px;
-            line-height: 1.6;
-            overflow-x: auto;
-        }
-        
-        .code-line {
-            display: flex;
-        }
-        
-        .line-number {
-            color: #6e7681;
-            text-align: right;
-            padding-right: 16px;
-            min-width: 40px;
-            user-select: none;
-        }
-        
-        .line-content {
-            flex: 1;
-        }
-        
-        .highlight-line {
-            background: rgba(125, 93, 253, 0.15);
-        }
-        
-        .relation-path {
-            stroke-dasharray: 5;
-            animation: dash 20s linear infinite;
-        }
-        
-        @keyframes dash {
-            to { stroke-dashoffset: -100; }
-        }
-        
-        .pulse {
-            animation: pulse 2s ease-in-out infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-        
-        .fade-in {
-            animation: fadeIn 0.3s ease-out;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .sidebar-item {
-            padding: 10px 14px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 14px;
-        }
-        
-        .sidebar-item:hover {
-            background: var(--color-slate-100);
-        }
-        
-        .sidebar-item.active {
-            background: var(--color-indigo-50);
-            color: var(--color-indigo-600);
-        }
-        
-        .filter-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border-radius: 16px;
-            font-size: 12px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border: 1px solid var(--color-slate-300);
-            background: #fff;
-        }
-        
-        .filter-chip:hover {
-            border-color: var(--color-indigo-400);
-        }
-        
-        .filter-chip.active {
-            background: var(--color-indigo-500);
-            color: white;
-            border-color: var(--color-indigo-500);
-        }
-        
-        .detail-panel {
-            background: #fff;
-            border-left: 1px solid var(--color-slate-200);
-            height: 100%;
-            overflow-y: auto;
-        }
-        
-        .tree-item {
-            padding: 8px 12px;
-            cursor: pointer;
-            border-radius: 6px;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .tree-item:hover {
-            background: var(--color-slate-100);
-        }
-        
-        .tree-children {
-            margin-left: 20px;
-            border-left: 1px solid var(--color-slate-200);
-            padding-left: 8px;
-        }
-        
-        .stats-bar {
-            height: 8px;
-            border-radius: 4px;
-            background: var(--color-slate-200);
-            overflow: hidden;
-        }
-        
-        .stats-fill {
-            height: 100%;
-            border-radius: 4px;
-            transition: width 0.5s ease;
-        }
-        
-        .tooltip {
-            position: absolute;
-            background: var(--color-slate-800);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            z-index: 1000;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.2s ease;
-        }
-        
-        .tooltip.show {
-            opacity: 1;
-        }
-    </style>
-</head>
-<body>
-    <!-- 顶部导航 -->
-    <header class="glass-panel sticky top-0 z-50">
-        <div class="max-w-[1600px] mx-auto px-6 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
-                        <i data-lucide="network" class="w-5 h-5 text-white"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-lg font-semibold text-slate-800">ArkTS 代码知识图谱</h1>
-                        <p class="text-xs text-slate-500">可视化代码结构分析系统</p>
-                    </div>
-                </div>
-                
-                <nav class="flex items-center gap-8">
-                    <button class="nav-tab active" data-tab="overview">
-                        <span class="flex items-center gap-2">
-                            <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
-                            总览
-                        </span>
-                    </button>
-                    <button class="nav-tab" data-tab="graph">
-                        <span class="flex items-center gap-2">
-                            <i data-lucide="git-branch" class="w-4 h-4"></i>
-                            关系图谱
-                        </span>
-                    </button>
-                    <button class="nav-tab" data-tab="explorer">
-                        <span class="flex items-center gap-2">
-                            <i data-lucide="folder-tree" class="w-4 h-4"></i>
-                            代码浏览器
-                        </span>
-                    </button>
-                    <button class="nav-tab" data-tab="ai-query">
-                        <span class="flex items-center gap-2">
-                            <i data-lucide="message-square" class="w-4 h-4"></i>
-                            AI 查询
-                        </span>
-                    </button>
-                </nav>
-                
-                <div class="flex items-center gap-3">
-                    <button class="btn btn-secondary" id="export-btn">
-                        <i data-lucide="download" class="w-4 h-4"></i>
-                        导出
-                    </button>
-                    <button class="btn btn-primary" id="refresh-btn">
-                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-                        刷新
-                    </button>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- 主内容区 -->
-    <main class="max-w-[1600px] mx-auto px-6 py-6">
-        
-        <!-- 总览页面 -->
-        <div id="overview-page" class="page-content">
-            <!-- 统计卡片 -->
-            <div class="grid grid-cols-6 gap-4 mb-6">
-                <div class="metric-card coral rounded-xl p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs text-slate-500 font-medium">文件总数</span>
-                        <i data-lucide="file-code" class="w-4 h-4 text-coral-500"></i>
-                    </div>
-                    <div class="text-2xl font-semibold text-slate-800" id="stat-files">8</div>
-                    <div class="text-xs text-slate-400 mt-1">.ets 文件</div>
-                </div>
-                
-                <div class="metric-card teal rounded-xl p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs text-slate-500 font-medium">组件数</span>
-                        <i data-lucide="box" class="w-4 h-4 text-teal-500"></i>
-                    </div>
-                    <div class="text-2xl font-semibold text-slate-800" id="stat-components">6</div>
-                    <div class="text-xs text-slate-400 mt-1">@Component</div>
-                </div>
-                
-                <div class="metric-card lime rounded-xl p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs text-slate-500 font-medium">入口组件</span>
-                        <i data-lucide="log-in" class="w-4 h-4 text-lime-600"></i>
-                    </div>
-                    <div class="text-2xl font-semibold text-slate-800" id="stat-entries">2</div>
-                    <div class="text-xs text-slate-400 mt-1">@Entry</div>
-                </div>
-                
-                <div class="metric-card indigo rounded-xl p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs text-slate-500 font-medium">方法数</span>
-                        <i data-lucide="function-square" class="w-4 h-4 text-indigo-500"></i>
-                    </div>
-                    <div class="text-2xl font-semibold text-slate-800" id="stat-methods">44</div>
-                    <div class="text-xs text-slate-400 mt-1">函数/方法</div>
-                </div>
-                
-                <div class="metric-card amber rounded-xl p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs text-slate-500 font-medium">调用关系</span>
-                        <i data-lucide="arrow-right-left" class="w-4 h-4 text-amber-500"></i>
-                    </div>
-                    <div class="text-2xl font-semibold text-slate-800" id="stat-calls">209</div>
-                    <div class="text-xs text-slate-400 mt-1">方法调用</div>
-                </div>
-                
-                <div class="metric-card slate rounded-xl p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs text-slate-500 font-medium">嵌套关系</span>
-                        <i data-lucide="layers" class="w-4 h-4 text-slate-500"></i>
-                    </div>
-                    <div class="text-2xl font-semibold text-slate-800" id="stat-nested">6</div>
-                    <div class="text-xs text-slate-400 mt-1">组件嵌套</div>
-                </div>
-            </div>
-            
-            <!-- 图表区域 -->
-            <div class="grid grid-cols-3 gap-6 mb-6">
-                <!-- 实体分布饼图 -->
-                <div class="glass-panel rounded-xl p-5">
-                    <h3 class="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-                        <i data-lucide="pie-chart" class="w-4 h-4"></i>
-                        实体类型分布
-                    </h3>
-                    <div class="h-48">
-                        <canvas id="entity-chart"></canvas>
-                    </div>
-                </div>
-                
-                <!-- 文件类型分布 -->
-                <div class="glass-panel rounded-xl p-5">
-                    <h3 class="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-                        <i data-lucide="folder" class="w-4 h-4"></i>
-                        文件目录分布
-                    </h3>
-                    <div class="h-48">
-                        <canvas id="file-chart"></canvas>
-                    </div>
-                </div>
-                
-                <!-- 组件层级 -->
-                <div class="glass-panel rounded-xl p-5">
-                    <h3 class="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-                        <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
-                        各组件方法数
-                    </h3>
-                    <div class="h-48">
-                        <canvas id="method-chart"></canvas>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- 最近活动和快捷操作 -->
-            <div class="grid grid-cols-2 gap-6">
-                <!-- 组件列表 -->
-                <div class="glass-panel rounded-xl p-5">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                            <i data-lucide="box" class="w-4 h-4"></i>
-                            组件列表
-                        </h3>
-                        <button class="text-xs text-indigo-500 hover:text-indigo-600">查看全部</button>
-                    </div>
-                    <div class="space-y-2" id="component-list">
-                        <!-- 动态生成 -->
-                    </div>
-                </div>
-                
-                <!-- 快捷查询 -->
-                <div class="glass-panel rounded-xl p-5">
-                    <h3 class="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-                        <i data-lucide="zap" class="w-4 h-4"></i>
-                        快捷查询
-                    </h3>
-                    <div class="grid grid-cols-2 gap-3">
-                        <button class="quick-query-btn p-3 text-left rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 transition-all" data-query="有哪些入口组件？">
-                            <div class="text-xs text-slate-500 mb-1">查询</div>
-                            <div class="text-sm font-medium text-slate-700">入口组件</div>
-                        </button>
-                        <button class="quick-query-btn p-3 text-left rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 transition-all" data-query="Index组件包含哪些子组件？">
-                            <div class="text-xs text-slate-500 mb-1">查询</div>
-                            <div class="text-sm font-medium text-slate-700">组件嵌套</div>
-                        </button>
-                        <button class="quick-query-btn p-3 text-left rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 transition-all" data-query="UserService有哪些方法？">
-                            <div class="text-xs text-slate-500 mb-1">查询</div>
-                            <div class="text-sm font-medium text-slate-700">服务方法</div>
-                        </button>
-                        <button class="quick-query-btn p-3 text-left rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 transition-all" data-query="哪些组件调用了Logger？">
-                            <div class="text-xs text-slate-500 mb-1">查询</div>
-                            <div class="text-sm font-medium text-slate-700">调用分析</div>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- 关系图谱页面 -->
-        <div id="graph-page" class="page-content hidden">
-            <div class="grid grid-cols-4 gap-6 h-[calc(100vh-140px)]">
-                <!-- 左侧筛选面板 -->
-                <div class="glass-panel rounded-xl p-4 overflow-y-auto">
-                    <h3 class="text-sm font-semibold text-slate-700 mb-4">图谱筛选</h3>
-                    
-                    <div class="mb-4">
-                        <label class="text-xs text-slate-500 mb-2 block">显示实体类型</label>
-                        <div class="space-y-2">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" class="entity-filter" value="component" checked>
-                                <span class="w-3 h-3 rounded-full bg-coral-500"></span>
-                                <span class="text-sm">组件</span>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" class="entity-filter" value="class" checked>
-                                <span class="w-3 h-3 rounded-full bg-teal-500"></span>
-                                <span class="text-sm">类</span>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" class="entity-filter" value="method">
-                                <span class="w-3 h-3 rounded-full bg-indigo-500"></span>
-                                <span class="text-sm">方法</span>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" class="entity-filter" value="file">
-                                <span class="w-3 h-3 rounded-full bg-amber-500"></span>
-                                <span class="text-sm">文件</span>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-4">
-                        <label class="text-xs text-slate-500 mb-2 block">关系类型</label>
-                        <div class="space-y-2">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" class="relation-filter" value="contains" checked>
-                                <span class="text-sm">包含关系</span>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" class="relation-filter" value="calls" checked>
-                                <span class="text-sm">调用关系</span>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" class="relation-filter" value="nests" checked>
-                                <span class="text-sm">嵌套关系</span>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-4">
-                        <label class="text-xs text-slate-500 mb-2 block">布局算法</label>
-                        <select id="layout-select" class="search-input">
-                            <option value="force">力导向布局</option>
-                            <option value="hierarchical">层次布局</option>
-                            <option value="circular">环形布局</option>
-                        </select>
-                    </div>
-                    
-                    <button class="btn btn-primary w-full" id="reset-graph">
-                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
-                        重置视图
-                    </button>
-                </div>
-                
-                <!-- 图谱容器 -->
-                <div class="col-span-3 glass-panel rounded-xl p-4 relative">
-                    <div id="graph-container"></div>
-                    
-                    <!-- 图谱控制按钮 -->
-                    <div class="absolute bottom-4 right-4 flex gap-2">
-                        <button class="btn btn-secondary" id="zoom-in">
-                            <i data-lucide="plus" class="w-4 h-4"></i>
-                        </button>
-                        <button class="btn btn-secondary" id="zoom-out">
-                            <i data-lucide="minus" class="w-4 h-4"></i>
-                        </button>
-                        <button class="btn btn-secondary" id="fit-graph">
-                            <i data-lucide="maximize" class="w-4 h-4"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- 代码浏览器页面 -->
-        <div id="explorer-page" class="page-content hidden">
-            <div class="grid grid-cols-4 gap-6 h-[calc(100vh-140px)]">
-                <!-- 文件树 -->
-                <div class="glass-panel rounded-xl p-4 overflow-y-auto">
-                    <h3 class="text-sm font-semibold text-slate-700 mb-4">项目结构</h3>
-                    <div id="file-tree"></div>
-                </div>
-                
-                <!-- 代码内容 -->
-                <div class="col-span-3 glass-panel rounded-xl overflow-hidden flex flex-col">
-                    <div class="border-b border-slate-200 px-4 py-3 flex items-center justify-between bg-slate-50">
-                        <div class="flex items-center gap-3">
-                            <i data-lucide="file-code" class="w-4 h-4 text-slate-400"></i>
-                            <span class="text-sm font-medium text-slate-700" id="current-file">pages/Index.ets</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <button class="btn btn-secondary text-xs" id="prev-file">
-                                <i data-lucide="chevron-left" class="w-3 h-3"></i>
-                            </button>
-                            <button class="btn btn-secondary text-xs" id="next-file">
-                                <i data-lucide="chevron-right" class="w-3 h-3"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="flex-1 overflow-auto p-4 bg-[#1e1e1e]">
-                        <div id="code-content" class="code-block"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- AI 查询页面 -->
-        <div id="ai-query-page" class="page-content hidden">
-            <div class="grid grid-cols-3 gap-6 h-[calc(100vh-140px)]">
-                <!-- 查询面板 -->
-                <div class="glass-panel rounded-xl p-5">
-                    <h3 class="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-                        <i data-lucide="message-square" class="w-4 h-4"></i>
-                        自然语言查询
-                    </h3>
-                    
-                    <div class="mb-4">
-                        <label class="text-xs text-slate-500 mb-2 block">API 密钥</label>
-                        <input type="password" id="api-key" class="search-input" placeholder="输入硅基流动 API 密钥">
-                    </div>
-                    
-                    <div class="mb-4">
-                        <label class="text-xs text-slate-500 mb-2 block">问题</label>
-                        <textarea id="query-input" class="search-input" rows="4" placeholder="输入您的问题，例如：Index组件包含哪些子组件？"></textarea>
-                    </div>
-                    
-                    <button class="btn btn-primary w-full" id="submit-query">
-                        <i data-lucide="send" class="w-4 h-4"></i>
-                        提交查询
-                    </button>
-                    
-                    <div class="mt-6">
-                        <label class="text-xs text-slate-500 mb-2 block">示例问题</label>
-                        <div class="space-y-2">
-                            <button class="example-query text-xs text-left w-full p-2 rounded bg-slate-50 hover:bg-slate-100 transition-colors" data-query="有哪些组件？">
-                                有哪些组件？
-                            </button>
-                            <button class="example-query text-xs text-left w-full p-2 rounded bg-slate-50 hover:bg-slate-100 transition-colors" data-query="Index组件包含哪些子组件？">
-                                Index组件包含哪些子组件？
-                            </button>
-                            <button class="example-query text-xs text-left w-full p-2 rounded bg-slate-50 hover:bg-slate-100 transition-colors" data-query="UserService有哪些方法？">
-                                UserService有哪些方法？
-                            </button>
-                            <button class="example-query text-xs text-left w-full p-2 rounded bg-slate-50 hover:bg-slate-100 transition-colors" data-query="哪些方法调用了Logger？">
-                                哪些方法调用了Logger？
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- 查询结果 -->
-                <div class="col-span-2 glass-panel rounded-xl p-5 overflow-y-auto">
-                    <h3 class="text-sm font-semibold text-slate-700 mb-4">查询结果</h3>
-                    
-                    <div id="query-result">
-                        <div class="text-center text-slate-400 py-20">
-                            <i data-lucide="search" class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
-                            <p>输入问题并提交，查看查询结果</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- 详情弹窗 -->
-    <div id="detail-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center">
-        <div class="glass-panel rounded-xl w-[600px] max-h-[80vh] overflow-hidden flex flex-col">
-            <div class="border-b border-slate-200 px-6 py-4 flex items-center justify-between">
-                <h3 class="text-lg font-semibold text-slate-800" id="modal-title">实体详情</h3>
-                <button id="close-modal" class="text-slate-400 hover:text-slate-600">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-            <div class="p-6 overflow-y-auto" id="modal-content">
-                <!-- 动态内容 -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Tooltip -->
-    <div id="tooltip" class="tooltip"></div>
-
-    <script>
-        // 初始化 Lucide 图标
-        lucide.createIcons();
-        
-        // 数据定义
-        const kgData = {
-            files: [
-                { path: 'test_arkts_project/pages/Index.ets', type: 'page', lineCount: 120 },
-                { path: 'test_arkts_project/pages/UserDetail.ets', type: 'page', lineCount: 95 },
-                { path: 'test_arkts_project/components/UserCard.ets', type: 'component', lineCount: 45 },
-                { path: 'test_arkts_project/components/Header.ets', type: 'component', lineCount: 35 },
-                { path: 'test_arkts_project/components/Footer.ets', type: 'component', lineCount: 40 },
-                { path: 'test_arkts_project/components/Avatar.ets', type: 'component', lineCount: 25 },
-                { path: 'test_arkts_project/utils/UserService.ets', type: 'util', lineCount: 80 },
-                { path: 'test_arkts_project/utils/Logger.ets', type: 'util', lineCount: 55 }
-            ],
-            classes: [
-                { name: 'Index', file: 'test_arkts_project/pages/Index.ets', isComponent: true, isEntry: true, lineNumber: 12, methods: ['aboutToAppear', 'loadUsers', 'onRefresh', 'onLoadMore', 'onUserClick', 'build'] },
-                { name: 'UserDetail', file: 'test_arkts_project/pages/UserDetail.ets', isComponent: true, isEntry: true, lineNumber: 8, methods: ['aboutToAppear', 'loadUserDetail', 'onUpdateUser', 'build'] },
-                { name: 'UserCard', file: 'test_arkts_project/components/UserCard.ets', isComponent: true, isEntry: false, lineNumber: 6, methods: ['handleClick', 'build'] },
-                { name: 'Header', file: 'test_arkts_project/components/Header.ets', isComponent: true, isEntry: false, lineNumber: 5, methods: ['onBackPress', 'build'] },
-                { name: 'Footer', file: 'test_arkts_project/components/Footer.ets', isComponent: true, isEntry: false, lineNumber: 5, methods: ['handleLoadMore', 'handleRefresh', 'build'] },
-                { name: 'Avatar', file: 'test_arkts_project/components/Avatar.ets', isComponent: true, isEntry: false, lineNumber: 5, methods: ['getValidUrl', 'build'] },
-                { name: 'UserService', file: 'test_arkts_project/utils/UserService.ets', isComponent: false, isEntry: false, lineNumber: 6, methods: ['fetchUsers', 'getUserById', 'createUser', 'updateUser', 'deleteUser', 'searchUsers'] },
-                { name: 'Logger', file: 'test_arkts_project/utils/Logger.ets', isComponent: false, isEntry: false, lineNumber: 4, methods: ['debug', 'info', 'warn', 'error', 'setLevel'] }
-            ],
-            componentRelations: [
-                { parent: 'Index', child: 'Header' },
-                { parent: 'Index', child: 'UserCard' },
-                { parent: 'Index', child: 'Footer' },
-                { parent: 'UserDetail', child: 'Header' },
-                { parent: 'UserDetail', child: 'Avatar' },
-                { parent: 'UserCard', child: 'Avatar' }
-            ],
-            callRelations: [
-                { caller: 'Index.aboutToAppear', callee: 'Logger.info' },
-                { caller: 'Index.aboutToAppear', callee: 'Index.loadUsers' },
-                { caller: 'Index.loadUsers', callee: 'UserService.fetchUsers' },
-                { caller: 'Index.loadUsers', callee: 'Logger.debug' },
-                { caller: 'Index.loadUsers', callee: 'Logger.error' },
-                { caller: 'Index.onRefresh', callee: 'Index.loadUsers' },
-                { caller: 'Index.onLoadMore', callee: 'UserService.fetchUsers' },
-                { caller: 'Index.onUserClick', callee: 'Logger.info' },
-                { caller: 'UserDetail.aboutToAppear', callee: 'UserDetail.loadUserDetail' },
-                { caller: 'UserDetail.loadUserDetail', callee: 'UserService.getUserById' },
-                { caller: 'UserDetail.loadUserDetail', callee: 'Logger.error' },
-                { caller: 'UserDetail.onUpdateUser', callee: 'UserService.updateUser' },
-                { caller: 'UserDetail.onUpdateUser', callee: 'Logger.info' },
-                { caller: 'UserDetail.onUpdateUser', callee: 'Logger.error' },
-                { caller: 'UserCard.handleClick', callee: 'Logger.info' },
-                { caller: 'Footer.handleLoadMore', callee: 'Logger.info' },
-                { caller: 'Footer.handleRefresh', callee: 'Logger.info' }
-            ]
-        };
-
-        // 代码内容示例
-        const codeContents = {
-            'test_arkts_project/pages/Index.ets': `@Entry
-@Component
-struct Index {
-  @State userList: User[] = [];
-  @State isLoading: boolean = false;
-  @State currentPage: number = 1;
-  
-  private userService: UserService = new UserService();
-  private logger: Logger = new Logger('Index');
-  
-  aboutToAppear() {
-    this.logger.info('Page appearing');
-    this.loadUsers();
-  }
-  
-  async loadUsers(): Promise<void> {
-    this.isLoading = true;
-    try {
-      this.userList = await this.userService.fetchUsers(this.currentPage);
-      this.logger.debug(\`Loaded \${this.userList.length} users\`);
-    } catch (error) {
-      this.logger.error('Failed to load users', error);
-    } finally {
-      this.isLoading = false;
-    }
-  }
-  
-  build() {
-    Column() {
-      Header({ title: '用户列表' })
-      
-      if (this.isLoading) {
-        LoadingProgress()
-      } else {
-        List() {
-          ForEach(this.userList, (user: User) => {
-            ListItem() {
-              UserCard({ user: user })
-            }
-          })
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ArkTS 代码知识图谱</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- vis-network -->
+  <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            coral: '#F87254',
+            cyan: '#3CDDDD',
+            glass: 'rgba(255,255,255,0.08)',
+            'glass-border': 'rgba(255,255,255,0.15)',
+            'glass-dark': 'rgba(0,0,0,0.3)',
+          }
         }
       }
-      
-      Footer({ onLoadMore: () => this.onLoadMore() })
     }
-  }
-}`,
-            'test_arkts_project/utils/UserService.ets': `export class UserService {
-  private baseUrl: string = 'https://api.example.com';
-  private logger: Logger = new Logger('UserService');
-  
-  async fetchUsers(page: number = 1, pageSize: number = 10): Promise<User[]> {
-    this.logger.debug(\`Fetching users, page: \${page}\`);
-    
-    try {
-      const response = await fetch(\`\${this.baseUrl}/users?page=\${page}\`);
-      const data = await response.json();
-      return data.users as User[];
-    } catch (error) {
-      this.logger.error('Failed to fetch users', error);
-      throw error;
+  </script>
+  <style>
+    /* ===== 基础样式 ===== */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      background: linear-gradient(135deg, #0f0c29 0%, #1a1a3e 40%, #24243e 100%);
+      color: #e2e8f0;
+      min-height: 100vh;
+      overflow-x: hidden;
     }
-  }
-  
-  async getUserById(id: number): Promise<User> {
-    this.logger.debug(\`Fetching user by id: \${id}\`);
-    
-    const response = await fetch(\`\${this.baseUrl}/users/\${id}\`);
-    const data = await response.json();
-    return data as User;
-  }
-  
-  async createUser(userData: Omit<User, 'id'>): Promise<User> {
-    this.logger.info('Creating new user');
-    
-    const response = await fetch(\`\${this.baseUrl}/users\`, {
-      method: 'POST',
-      body: JSON.stringify(userData)
+    body.light-mode {
+      background: linear-gradient(135deg, #e8eaf6 0%, #f5f5f5 40%, #e0e7ff 100%);
+      color: #1e293b;
+    }
+
+    /* ===== 毛玻璃面板 ===== */
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+    }
+    body.light-mode .glass-panel {
+      background: rgba(255, 255, 255, 0.65);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+    }
+
+    /* ===== 导航栏 ===== */
+    .nav-bar {
+      background: rgba(15, 12, 41, 0.85);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    body.light-mode .nav-bar {
+      background: rgba(255, 255, 255, 0.88);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      box-shadow: 0 2px 16px rgba(0, 0, 0, 0.04);
+    }
+    .nav-tab {
+      padding: 8px 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 14px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.6);
+      white-space: nowrap;
+    }
+    .nav-tab:hover { color: rgba(255, 255, 255, 0.9); background: rgba(255, 255, 255, 0.08); }
+    .nav-tab.active {
+      color: #F87254;
+      background: rgba(248, 114, 84, 0.12);
+      font-weight: 600;
+    }
+    body.light-mode .nav-tab { color: rgba(0, 0, 0, 0.5); }
+    body.light-mode .nav-tab:hover { color: rgba(0, 0, 0, 0.8); background: rgba(0, 0, 0, 0.04); }
+    body.light-mode .nav-tab.active { color: #e05535; background: rgba(248, 114, 84, 0.1); }
+
+    /* ===== 统计卡片 ===== */
+    .stat-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 20px;
+      transition: all 0.3s ease;
+    }
+    .stat-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(248, 114, 84, 0.3);
+      box-shadow: 0 8px 32px rgba(248, 114, 84, 0.1);
+    }
+    body.light-mode .stat-card {
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+    }
+    body.light-mode .stat-card:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+
+    /* ===== 页面容器 ===== */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* ===== 滚动条 ===== */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.25); }
+    body.light-mode ::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.15); }
+
+    /* ===== Toast 通知 ===== */
+    .toast-container {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toast {
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      backdrop-filter: blur(16px);
+      animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+      max-width: 360px;
+      word-break: break-word;
+    }
+    .toast-success { background: rgba(34, 197, 94, 0.9); color: #fff; }
+    .toast-error { background: rgba(239, 68, 68, 0.9); color: #fff; }
+    .toast-info { background: rgba(59, 130, 246, 0.9); color: #fff; }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateX(40px); } }
+
+    /* ===== 加载动画 ===== */
+    .loading-spinner {
+      display: inline-block;
+      width: 20px; height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-top-color: #F87254;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .page-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 400px;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* ===== 图谱容器 ===== */
+    #graph-canvas {
+      width: 100%;
+      height: calc(100vh - 140px);
+      min-height: 500px;
+      border-radius: 14px;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    body.light-mode #graph-canvas {
+      background: rgba(255, 255, 255, 0.5);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+    }
+
+    /* ===== 节点详情面板 ===== */
+    .detail-panel {
+      position: fixed;
+      top: 0; right: -480px;
+      width: 460px;
+      height: 100vh;
+      background: rgba(20, 18, 50, 0.95);
+      backdrop-filter: blur(24px);
+      border-left: 1px solid rgba(255, 255, 255, 0.1);
+      z-index: 1000;
+      transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow-y: auto;
+      padding: 24px;
+    }
+    .detail-panel.open { right: 0; }
+    body.light-mode .detail-panel {
+      background: rgba(255, 255, 255, 0.95);
+      border-left: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    /* ===== 代码预览 ===== */
+    .code-preview {
+      background: #1e1e2e;
+      border-radius: 12px;
+      overflow: auto;
+      font-family: 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .code-line {
+      display: flex;
+      padding: 0 16px;
+      min-height: 22px;
+    }
+    .code-line:hover { background: rgba(255, 255, 255, 0.04); }
+    .line-number {
+      color: rgba(255, 255, 255, 0.25);
+      width: 48px;
+      text-align: right;
+      padding-right: 16px;
+      user-select: none;
+      flex-shrink: 0;
+    }
+    .line-content { color: #cdd6f4; white-space: pre; }
+
+    /* ===== 文件树 ===== */
+    .file-tree-item {
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .file-tree-item:hover { background: rgba(248, 114, 84, 0.1); }
+    .file-tree-item.active { background: rgba(248, 114, 84, 0.2); color: #F87254; }
+
+    /* ===== 按钮样式 ===== */
+    .btn-primary {
+      background: linear-gradient(135deg, #F87254, #e05535);
+      color: #fff;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(248, 114, 84, 0.4); }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 8px 18px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.3s;
+    }
+    .btn-secondary:hover { background: rgba(255, 255, 255, 0.14); }
+    body.light-mode .btn-secondary {
+      background: rgba(0, 0, 0, 0.04);
+      color: #1e293b;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    body.light-mode .btn-secondary:hover { background: rgba(0, 0, 0, 0.08); }
+
+    /* ===== 下拉菜单 ===== */
+    .dropdown-menu {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 4px;
+      background: rgba(20, 18, 50, 0.95);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 6px;
+      min-width: 160px;
+      z-index: 500;
+      display: none;
+    }
+    .dropdown-menu.show { display: block; }
+    .dropdown-item {
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .dropdown-item:hover { background: rgba(248, 114, 84, 0.15); }
+
+    /* ===== 输入框 ===== */
+    .input-field {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #e2e8f0;
+      font-size: 14px;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+    .input-field:focus { border-color: #F87254; }
+    .input-field::placeholder { color: rgba(255, 255, 255, 0.3); }
+    body.light-mode .input-field {
+      background: rgba(0, 0, 0, 0.03);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      color: #1e293b;
+    }
+    body.light-mode .input-field::placeholder { color: rgba(0, 0, 0, 0.3); }
+
+    /* ===== 复选框 ===== */
+    .custom-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      padding: 4px 0;
+    }
+    .custom-checkbox input[type="checkbox"] {
+      width: 16px; height: 16px;
+      accent-color: #F87254;
+      cursor: pointer;
+    }
+
+    /* ===== 结果表格 ===== */
+    .result-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .result-table th {
+      background: rgba(248, 114, 84, 0.12);
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      white-space: nowrap;
+    }
+    .result-table td {
+      padding: 8px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .result-table tr:hover td { background: rgba(255, 255, 255, 0.03); }
+    body.light-mode .result-table th { background: rgba(248, 114, 84, 0.08); }
+    body.light-mode .result-table td { border-bottom: 1px solid rgba(0, 0, 0, 0.04); }
+
+    /* ===== 示例问题标签 ===== */
+    .example-tag {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .example-tag:hover {
+      background: rgba(248, 114, 84, 0.15);
+      border-color: rgba(248, 114, 84, 0.3);
+      color: #F87254;
+    }
+
+    /* ===== 快捷查询按钮 ===== */
+    .quick-query-btn {
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      background: rgba(60, 221, 221, 0.08);
+      border: 1px solid rgba(60, 221, 221, 0.2);
+      color: #3CDDDD;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .quick-query-btn:hover {
+      background: rgba(60, 221, 221, 0.15);
+      transform: translateY(-1px);
+    }
+
+    /* ===== 主题切换按钮 ===== */
+    .theme-toggle {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.3s;
+      color: #e2e8f0;
+    }
+    .theme-toggle:hover { background: rgba(255, 255, 255, 0.12); }
+
+    /* ===== 响应式 ===== */
+    @media (max-width: 768px) {
+      .nav-tabs { gap: 4px !important; }
+      .nav-tab { padding: 6px 12px; font-size: 12px; }
+      .detail-panel { width: 100%; right: -100%; }
+      .stat-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Toast 通知容器 -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ===== 顶部导航栏 ===== -->
+  <nav class="nav-bar fixed top-0 left-0 right-0 z-50 px-4 lg:px-8">
+    <div class="max-w-[1600px] mx-auto flex items-center justify-between h-16">
+      <!-- 左侧 Logo + 标题 -->
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, #F87254, #e05535);">
+          <i data-lucide="brain" class="w-5 h-5 text-white"></i>
+        </div>
+        <span class="text-lg font-bold tracking-tight">ArkTS 代码知识图谱</span>
+      </div>
+
+      <!-- 中间 Tab -->
+      <div class="nav-tabs flex items-center gap-2">
+        <div class="nav-tab active" data-page="overview" onclick="switchPage('overview')">
+          <i data-lucide="layout-dashboard" class="w-4 h-4 inline-block mr-1 -mt-0.5"></i>总览
+        </div>
+        <div class="nav-tab" data-page="graph" onclick="switchPage('graph')">
+          <i data-lucide="git-branch" class="w-4 h-4 inline-block mr-1 -mt-0.5"></i>关系图谱
+        </div>
+        <div class="nav-tab" data-page="explorer" onclick="switchPage('explorer')">
+          <i data-lucide="code-2" class="w-4 h-4 inline-block mr-1 -mt-0.5"></i>代码浏览器
+        </div>
+        <div class="nav-tab" data-page="aiquery" onclick="switchPage('aiquery')">
+          <i data-lucide="sparkles" class="w-4 h-4 inline-block mr-1 -mt-0.5"></i>AI 查询
+        </div>
+      </div>
+
+      <!-- 右侧操作按钮 -->
+      <div class="flex items-center gap-2">
+        <!-- 主题切换 -->
+        <div class="theme-toggle" onclick="toggleTheme()" title="切换主题">
+          <i data-lucide="sun" class="w-4 h-4" id="themeIcon"></i>
+        </div>
+        <!-- 导出按钮 -->
+        <div class="relative">
+          <button class="btn-secondary flex items-center gap-1" onclick="toggleExportMenu()">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">导出</span>
+          </button>
+          <div class="dropdown-menu" id="exportMenu">
+            <div class="dropdown-item" onclick="exportJSON()">
+              <i data-lucide="file-json" class="w-4 h-4"></i>导出 JSON
+            </div>
+            <div class="dropdown-item" onclick="showCSVDialog()">
+              <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>导出 CSV
+            </div>
+            <div class="dropdown-item" onclick="exportPNG()">
+              <i data-lucide="image" class="w-4 h-4"></i>导出 PNG
+            </div>
+          </div>
+        </div>
+        <!-- 刷新按钮 -->
+        <button class="btn-secondary flex items-center gap-1" onclick="refreshData()" title="刷新数据">
+          <i data-lucide="refresh-cw" class="w-4 h-4" id="refreshIcon"></i>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===== 主内容区域 ===== -->
+  <main class="max-w-[1600px] mx-auto px-4 lg:px-8 pt-20 pb-8">
+
+    <!-- ==================== 页面1：总览 ==================== -->
+    <div class="page active" id="page-overview">
+      <!-- 统计卡片 -->
+      <div class="stat-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8" id="statsCards">
+        <div class="stat-card" id="stat-files">
+          <div class="flex items-center gap-2 mb-2">
+            <i data-lucide="file-text" class="w-4 h-4 text-coral"></i>
+            <span class="text-xs opacity-60">文件数</span>
+          </div>
+          <div class="text-2xl font-bold">--</div>
+        </div>
+        <div class="stat-card" id="stat-classes">
+          <div class="flex items-center gap-2 mb-2">
+            <i data-lucide="box" class="w-4 h-4 text-cyan"></i>
+            <span class="text-xs opacity-60">组件数</span>
+          </div>
+          <div class="text-2xl font-bold">--</div>
+        </div>
+        <div class="stat-card" id="stat-entry">
+          <div class="flex items-center gap-2 mb-2">
+            <i data-lucide="log-in" class="w-4 h-4 text-green-400"></i>
+            <span class="text-xs opacity-60">入口组件数</span>
+          </div>
+          <div class="text-2xl font-bold">--</div>
+        </div>
+        <div class="stat-card" id="stat-methods">
+          <div class="flex items-center gap-2 mb-2">
+            <i data-lucide="function-square" class="w-4 h-4 text-purple-400"></i>
+            <span class="text-xs opacity-60">方法数</span>
+          </div>
+          <div class="text-2xl font-bold">--</div>
+        </div>
+        <div class="stat-card" id="stat-calls">
+          <div class="flex items-center gap-2 mb-2">
+            <i data-lucide="arrow-right-left" class="w-4 h-4 text-yellow-400"></i>
+            <span class="text-xs opacity-60">调用关系数</span>
+          </div>
+          <div class="text-2xl font-bold">--</div>
+        </div>
+        <div class="stat-card" id="stat-components">
+          <div class="flex items-center gap-2 mb-2">
+            <i data-lucide="git-merge" class="w-4 h-4 text-pink-400"></i>
+            <span class="text-xs opacity-60">嵌套关系数</span>
+          </div>
+          <div class="text-2xl font-bold">--</div>
+        </div>
+      </div>
+
+      <!-- 图表区域 -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- 实体类型分布（环形图） -->
+        <div class="glass-panel p-5">
+          <h3 class="text-sm font-semibold mb-4 opacity-80">实体类型分布</h3>
+          <div style="height: 260px; position: relative;">
+            <canvas id="chartEntityType"></canvas>
+          </div>
+        </div>
+        <!-- 文件目录分布（饼图） -->
+        <div class="glass-panel p-5">
+          <h3 class="text-sm font-semibold mb-4 opacity-80">文件目录分布</h3>
+          <div style="height: 260px; position: relative;">
+            <canvas id="chartFileDir"></canvas>
+          </div>
+        </div>
+        <!-- 各组件方法数（柱状图） -->
+        <div class="glass-panel p-5">
+          <h3 class="text-sm font-semibold mb-4 opacity-80">各组件方法数</h3>
+          <div style="height: 260px; position: relative;">
+            <canvas id="chartMethodsPerClass"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- 组件列表 -->
+      <div class="glass-panel p-5 mb-8">
+        <h3 class="text-sm font-semibold mb-4 opacity-80">组件列表</h3>
+        <div class="overflow-x-auto">
+          <table class="result-table" id="componentTable">
+            <thead>
+              <tr>
+                <th>类名</th>
+                <th>文件路径</th>
+                <th>行号</th>
+                <th>类型</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="componentTableBody">
+              <tr><td colspan="5" class="text-center opacity-50 py-8">加载中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 快捷查询 -->
+      <div class="glass-panel p-5">
+        <h3 class="text-sm font-semibold mb-4 opacity-80">快捷查询</h3>
+        <div class="flex flex-wrap gap-2" id="quickQueries">
+          <button class="quick-query-btn" onclick="quickQuery('列出所有入口组件及其方法')">列出所有入口组件及其方法</button>
+          <button class="quick-query-btn" onclick="quickQuery('哪些组件被最多其他组件调用？')">哪些组件被最多其他组件调用？</button>
+          <button class="quick-query-btn" onclick="quickQuery('查找所有包含子组件的组件')">查找所有包含子组件的组件</button>
+          <button class="quick-query-btn" onclick="quickQuery('统计每个文件中的类数量')">统计每个文件中的类数量</button>
+          <button class="quick-query-btn" onclick="quickQuery('查找调用关系最复杂的方法')">查找调用关系最复杂的方法</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 页面2：关系图谱 ==================== -->
+    <div class="page" id="page-graph">
+      <div class="flex gap-4" style="height: calc(100vh - 120px);">
+        <!-- 左侧筛选面板 -->
+        <div class="glass-panel p-4 flex-shrink-0 overflow-y-auto" style="width: 260px;">
+          <h3 class="text-sm font-semibold mb-4 opacity-80">筛选条件</h3>
+
+          <!-- 实体类型筛选 -->
+          <div class="mb-5">
+            <div class="text-xs font-semibold opacity-50 mb-2 uppercase tracking-wider">实体类型</div>
+            <label class="custom-checkbox"><input type="checkbox" checked data-filter="entity" value="component"> 组件</label>
+            <label class="custom-checkbox"><input type="checkbox" checked data-filter="entity" value="class"> 类</label>
+            <label class="custom-checkbox"><input type="checkbox" checked data-filter="entity" value="method"> 方法</label>
+            <label class="custom-checkbox"><input type="checkbox" checked data-filter="entity" value="file"> 文件</label>
+          </div>
+
+          <!-- 关系类型筛选 -->
+          <div class="mb-5">
+            <div class="text-xs font-semibold opacity-50 mb-2 uppercase tracking-wider">关系类型</div>
+            <label class="custom-checkbox"><input type="checkbox" checked data-filter="relation" value="component"> 包含关系</label>
+            <label class="custom-checkbox"><input type="checkbox" checked data-filter="relation" value="call"> 调用关系</label>
+            <label class="custom-checkbox"><input type="checkbox" checked data-filter="relation" value="inherit"> 嵌套关系</label>
+          </div>
+
+          <!-- 布局算法 -->
+          <div class="mb-5">
+            <div class="text-xs font-semibold opacity-50 mb-2 uppercase tracking-wider">布局算法</div>
+            <select class="input-field text-sm" id="layoutSelect" onchange="changeLayout()">
+              <option value="force">力导向布局</option>
+              <option value="hierarchical">层次布局</option>
+              <option value="circular">环形布局</option>
+            </select>
+          </div>
+
+          <!-- 搜索框 -->
+          <div class="mb-5">
+            <div class="text-xs font-semibold opacity-50 mb-2 uppercase tracking-wider">搜索节点</div>
+            <div class="relative">
+              <input type="text" class="input-field text-sm pr-8" id="graphSearch" placeholder="输入关键词搜索..." oninput="debounceSearch()">
+              <i data-lucide="search" class="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 opacity-40"></i>
+            </div>
+          </div>
+
+          <!-- 重置按钮 -->
+          <button class="btn-secondary w-full text-sm" onclick="resetGraphView()">
+            <i data-lucide="rotate-ccw" class="w-4 h-4 inline-block mr-1 -mt-0.5"></i>重置视图
+          </button>
+        </div>
+
+        <!-- 右侧图谱区域 -->
+        <div class="flex-1 flex flex-col gap-3">
+          <div class="flex-1 relative">
+            <div id="graph-canvas"></div>
+            <!-- 图谱加载状态 -->
+            <div class="page-loading absolute inset-0" id="graphLoading" style="display:none;">
+              <div class="loading-spinner" style="width:40px;height:40px;border-width:3px;"></div>
+              <span class="text-sm opacity-60">正在构建图谱...</span>
+            </div>
+          </div>
+          <!-- 底部控制按钮 -->
+          <div class="flex items-center justify-center gap-2">
+            <button class="btn-secondary" onclick="graphZoomIn()" title="放大">
+              <i data-lucide="zoom-in" class="w-4 h-4"></i>
+            </button>
+            <button class="btn-secondary" onclick="graphZoomOut()" title="缩小">
+              <i data-lucide="zoom-out" class="w-4 h-4"></i>
+            </button>
+            <button class="btn-secondary" onclick="graphFitScreen()" title="适应屏幕">
+              <i data-lucide="maximize" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 页面3：代码浏览器 ==================== -->
+    <div class="page" id="page-explorer">
+      <div class="flex gap-4" style="height: calc(100vh - 120px);">
+        <!-- 左侧文件树 -->
+        <div class="glass-panel p-4 flex-shrink-0 overflow-y-auto" style="width: 280px;">
+          <h3 class="text-sm font-semibold mb-4 opacity-80">文件列表</h3>
+          <div id="fileTree">
+            <div class="text-sm opacity-40 text-center py-8">加载中...</div>
+          </div>
+        </div>
+
+        <!-- 右侧代码预览 -->
+        <div class="flex-1 flex flex-col gap-3">
+          <!-- 文件路径栏 -->
+          <div class="glass-panel px-4 py-2 flex items-center justify-between">
+            <span class="text-sm opacity-60" id="currentFilePath">请选择一个文件</span>
+            <div class="flex gap-2">
+              <button class="btn-secondary text-xs" onclick="prevFile()" title="上一个文件">
+                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+              </button>
+              <button class="btn-secondary text-xs" onclick="nextFile()" title="下一个文件">
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+          <!-- 代码区域 -->
+          <div class="code-preview flex-1 overflow-auto" id="codePreview">
+            <div class="flex items-center justify-center h-full opacity-40 text-sm">
+              请从左侧选择一个文件查看内容
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 页面4：AI 查询 ==================== -->
+    <div class="page" id="page-aiquery">
+      <div class="flex gap-4" style="height: calc(100vh - 120px);">
+        <!-- 左侧查询面板 -->
+        <div class="glass-panel p-5 flex-shrink-0 overflow-y-auto flex flex-col" style="width: 380px;">
+          <h3 class="text-sm font-semibold mb-4 opacity-80">AI 查询</h3>
+
+          <!-- API 密钥 -->
+          <div class="mb-4">
+            <label class="text-xs font-semibold opacity-50 mb-1 block">API 密钥</label>
+            <div class="flex gap-2">
+              <input type="password" class="input-field text-sm flex-1" id="apiKeyInput" placeholder="输入 API 密钥...">
+              <button class="btn-secondary text-xs" onclick="testConnection()">测试连接</button>
+            </div>
+          </div>
+
+          <!-- 问题输入 -->
+          <div class="mb-4 flex-1 flex flex-col">
+            <label class="text-xs font-semibold opacity-50 mb-1 block">输入问题</label>
+            <textarea class="input-field text-sm flex-1 resize-none" id="aiQuestion" placeholder="例如：列出所有入口组件及其方法..." style="min-height: 120px;"></textarea>
+          </div>
+
+          <!-- 提交按钮 -->
+          <button class="btn-primary w-full mb-4" onclick="submitAIQuery()" id="aiSubmitBtn">
+            <i data-lucide="send" class="w-4 h-4 inline-block mr-1 -mt-0.5"></i>提交查询
+          </button>
+
+          <!-- 示例问题 -->
+          <div>
+            <div class="text-xs font-semibold opacity-50 mb-2">示例问题</div>
+            <div class="flex flex-wrap gap-2">
+              <span class="example-tag" onclick="fillQuestion('列出所有入口组件及其方法')">列出所有入口组件及其方法</span>
+              <span class="example-tag" onclick="fillQuestion('哪些组件被最多其他组件调用？')">哪些组件被最多其他组件调用？</span>
+              <span class="example-tag" onclick="fillQuestion('查找所有包含子组件的组件')">查找所有包含子组件的组件</span>
+              <span class="example-tag" onclick="fillQuestion('统计每个文件中的类数量')">统计每个文件中的类数量</span>
+              <span class="example-tag" onclick="fillQuestion('查找调用关系最复杂的方法')">查找调用关系最复杂的方法</span>
+              <span class="example-tag" onclick="fillQuestion('有哪些类继承了其他类？')">有哪些类继承了其他类？</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右侧结果面板 -->
+        <div class="flex-1 glass-panel p-5 overflow-y-auto">
+          <h3 class="text-sm font-semibold mb-4 opacity-80">查询结果</h3>
+
+          <!-- 加载状态 -->
+          <div class="page-loading" id="aiLoading" style="display:none;">
+            <div class="loading-spinner" style="width:40px;height:40px;border-width:3px;"></div>
+            <span class="text-sm opacity-60">正在查询中...</span>
+          </div>
+
+          <!-- SQL 显示 -->
+          <div id="aiSqlSection" style="display:none;" class="mb-4">
+            <div class="text-xs font-semibold opacity-50 mb-2">生成的 SQL</div>
+            <pre class="code-preview p-4 text-sm" id="aiSqlContent" style="border-radius:10px; overflow-x:auto;"></pre>
+          </div>
+
+          <!-- 结果表格 -->
+          <div id="aiResultSection" style="display:none;">
+            <div class="flex items-center justify-between mb-2">
+              <div class="text-xs font-semibold opacity-50">查询结果</div>
+              <div class="text-xs opacity-40" id="aiRowCount"></div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="result-table" id="aiResultTable">
+                <thead id="aiResultHead"></thead>
+                <tbody id="aiResultBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 错误提示 -->
+          <div id="aiErrorSection" style="display:none;" class="glass-panel p-4" style="background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.2);">
+            <div class="flex items-center gap-2 text-red-400">
+              <i data-lucide="alert-circle" class="w-4 h-4"></i>
+              <span class="text-sm" id="aiErrorMsg"></span>
+            </div>
+          </div>
+
+          <!-- 空状态 -->
+          <div id="aiEmptyState" class="flex items-center justify-center" style="min-height:300px;">
+            <div class="text-center opacity-40">
+              <i data-lucide="message-square" class="w-12 h-12 mx-auto mb-3 opacity-30"></i>
+              <p class="text-sm">输入问题后点击提交查询</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ===== 节点详情面板 ===== -->
+  <div class="detail-panel" id="detailPanel">
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="text-lg font-bold" id="detailTitle">节点详情</h3>
+      <button class="btn-secondary" onclick="closeDetailPanel()" style="padding:6px 10px;">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+    <div id="detailContent">
+      <!-- 动态填充 -->
+    </div>
+  </div>
+
+  <!-- ===== CSV 导出对话框 ===== -->
+  <div id="csvDialog" style="display:none; position:fixed; inset:0; z-index:2000; background:rgba(0,0,0,0.5); backdrop-filter:blur(4px);" onclick="closeCSVDialog(event)">
+    <div class="glass-panel p-6" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:360px;" onclick="event.stopPropagation()">
+      <h3 class="text-base font-bold mb-4">选择导出表</h3>
+      <div class="flex flex-col gap-2">
+        <button class="btn-secondary text-left" onclick="exportCSV('classes')">classes - 类信息</button>
+        <button class="btn-secondary text-left" onclick="exportCSV('methods')">methods - 方法信息</button>
+        <button class="btn-secondary text-left" onclick="exportCSV('calls')">calls - 调用关系</button>
+        <button class="btn-secondary text-left" onclick="exportCSV('components')">components - 组件关系</button>
+        <button class="btn-secondary text-left" onclick="exportCSV('inherits')">inherits - 继承关系</button>
+        <button class="btn-secondary text-left" onclick="exportCSV('files')">files - 文件列表</button>
+      </div>
+      <button class="btn-secondary w-full mt-3" onclick="closeCSVDialog()">取消</button>
+    </div>
+  </div>
+
+  <!-- ===== JavaScript ===== -->
+  <script>
+    // ========================================
+    // API 基础配置
+    // ========================================
+    const API_BASE = '';
+
+    // ========================================
+    // 统一的 API 调用函数
+    // ========================================
+    async function apiGet(url) {
+      const response = await fetch(API_BASE + url);
+      if (!response.ok) {
+        throw new Error(`API 请求失败: ${response.status} ${response.statusText}`);
+      }
+      // 尝试解析 JSON，如果返回的是文件则直接返回 blob
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json();
+      }
+      return response;
+    }
+
+    async function apiPost(url, data) {
+      const response = await fetch(API_BASE + url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (!response.ok) {
+        throw new Error(`API 请求失败: ${response.status} ${response.statusText}`);
+      }
+      return await response.json();
+    }
+
+    // ========================================
+    // 数据缓存
+    // ========================================
+    const dataCache = {
+      stats: null,
+      files: null,
+      classes: null,
+      methods: null,
+      calls: null,
+      components: null,
+      inherits: null
+    };
+
+    // ========================================
+    // 图表实例引用
+    // ========================================
+    let chartEntityType = null;
+    let chartFileDir = null;
+    let chartMethodsPerClass = null;
+
+    // ========================================
+    // vis-network 实例
+    // ========================================
+    let network = null;
+    let graphNodes = null;
+    let graphEdges = null;
+    let searchTimer = null;
+
+    // ========================================
+    // 文件浏览器状态
+    // ========================================
+    let currentFileIndex = -1;
+    let flatFileList = [];
+
+    // ========================================
+    // Toast 通知
+    // ========================================
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      // 3 秒后自动移除
+      setTimeout(() => {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 3000);
+    }
+
+    // ========================================
+    // 页面切换
+    // ========================================
+    function switchPage(pageName) {
+      // 更新 Tab 状态
+      document.querySelectorAll('.nav-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.page === pageName);
+      });
+      // 更新页面显示
+      document.querySelectorAll('.page').forEach(page => {
+        page.classList.toggle('active', page.id === `page-${pageName}`);
+      });
+      // 切换到图谱页面时，如果图谱还没创建则创建
+      if (pageName === 'graph' && !network) {
+        initGraph();
+      }
+      // 切换到代码浏览器时，如果文件树还没加载则加载
+      if (pageName === 'explorer' && !flatFileList.length) {
+        initExplorer();
+      }
+      // 关闭导出菜单
+      document.getElementById('exportMenu').classList.remove('show');
+    }
+
+    // ========================================
+    // 主题切换
+    // ========================================
+    let isDarkMode = true;
+    function toggleTheme() {
+      isDarkMode = !isDarkMode;
+      document.body.classList.toggle('light-mode', !isDarkMode);
+      // 更新图表颜色
+      updateChartColors();
+    }
+
+    function updateChartColors() {
+      const textColor = isDarkMode ? '#a0aec0' : '#475569';
+      const gridColor = isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+      [chartEntityType, chartFileDir, chartMethodsPerClass].forEach(chart => {
+        if (!chart) return;
+        if (chart.options.plugins.legend) {
+          chart.options.plugins.legend.labels.color = textColor;
+        }
+        if (chart.options.scales) {
+          Object.values(chart.options.scales).forEach(scale => {
+            if (scale.ticks) scale.ticks.color = textColor;
+            if (scale.grid) scale.grid.color = gridColor;
+          });
+        }
+        chart.update();
+      });
+    }
+
+    // ========================================
+    // 导出菜单
+    // ========================================
+    function toggleExportMenu() {
+      document.getElementById('exportMenu').classList.toggle('show');
+    }
+
+    // 点击页面其他区域关闭导出菜单
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.relative') || !e.target.closest('[onclick="toggleExportMenu()"]')) {
+        const menu = document.getElementById('exportMenu');
+        if (menu && !menu.contains(e.target) && !e.target.closest('[onclick="toggleExportMenu()"]')) {
+          menu.classList.remove('show');
+        }
+      }
     });
-    const data = await response.json();
-    return data as User;
-  }
-}`,
-            'test_arkts_project/utils/Logger.ets': `export class Logger {
-  private tag: string;
-  private static level: LogLevel = LogLevel.DEBUG;
-  
-  constructor(tag: string) {
-    this.tag = tag;
-  }
-  
-  static setLevel(level: LogLevel): void {
-    Logger.level = level;
-  }
-  
-  debug(message: string, ...args: any[]): void {
-    if (Logger.level <= LogLevel.DEBUG) {
-      console.debug(\`[\${this.tag}] \${message}\`, ...args);
-    }
-  }
-  
-  info(message: string, ...args: any[]): void {
-    if (Logger.level <= LogLevel.INFO) {
-      console.info(\`[\${this.tag}] \${message}\`, ...args);
-    }
-  }
-  
-  warn(message: string, ...args: any[]): void {
-    if (Logger.level <= LogLevel.WARN) {
-      console.warn(\`[\${this.tag}] \${message}\`, ...args);
-    }
-  }
-  
-  error(message: string, ...args: any[]): void {
-    if (Logger.level <= LogLevel.ERROR) {
-      console.error(\`[\${this.tag}] \${message}\`, ...args);
-    }
-  }
-}
 
-enum LogLevel {
-  DEBUG = 0,
-  INFO = 1,
-  WARN = 2,
-  ERROR = 3
-}`
+    // ========================================
+    // 导出功能
+    // ========================================
+    function exportJSON() {
+      document.getElementById('exportMenu').classList.remove('show');
+      try {
+        window.location.href = API_BASE + '/api/export/json';
+        showToast('正在导出 JSON 文件...', 'success');
+      } catch (e) {
+        showToast('导出失败: ' + e.message, 'error');
+      }
+    }
+
+    function showCSVDialog() {
+      document.getElementById('exportMenu').classList.remove('show');
+      document.getElementById('csvDialog').style.display = 'block';
+    }
+
+    function closeCSVDialog(e) {
+      if (e && e.target !== e.currentTarget) return;
+      document.getElementById('csvDialog').style.display = 'none';
+    }
+
+    function exportCSV(tableName) {
+      closeCSVDialog();
+      try {
+        window.location.href = API_BASE + '/api/export/csv/' + tableName;
+        showToast(`正在导出 ${tableName}.csv ...`, 'success');
+      } catch (e) {
+        showToast('导出失败: ' + e.message, 'error');
+      }
+    }
+
+    function exportPNG() {
+      document.getElementById('exportMenu').classList.remove('show');
+      // 如果当前在图谱页面，截取图谱 canvas
+      if (network) {
+        try {
+          const canvas = document.querySelector('#graph-canvas canvas');
+          if (canvas) {
+            const link = document.createElement('a');
+            link.download = 'arkts-knowledge-graph.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            showToast('图谱已导出为 PNG', 'success');
+            return;
+          }
+        } catch (e) {
+          // canvas 可能有跨域限制，回退方案
+        }
+      }
+      showToast('请先切换到图谱页面再导出 PNG', 'info');
+    }
+
+    // ========================================
+    // 数据加载
+    // ========================================
+    async function loadAllData() {
+      try {
+        // 并行加载所有数据
+        const [stats, files, classes, calls, components, inherits] = await Promise.all([
+          apiGet('/api/stats').catch(e => { console.warn('加载 stats 失败:', e); return null; }),
+          apiGet('/api/files').catch(e => { console.warn('加载 files 失败:', e); return null; }),
+          apiGet('/api/classes').catch(e => { console.warn('加载 classes 失败:', e); return null; }),
+          apiGet('/api/calls').catch(e => { console.warn('加载 calls 失败:', e); return null; }),
+          apiGet('/api/components').catch(e => { console.warn('加载 components 失败:', e); return null; }),
+          apiGet('/api/inherits').catch(e => { console.warn('加载 inherits 失败:', e); return null; })
+        ]);
+
+        dataCache.stats = stats;
+        dataCache.files = files;
+        dataCache.classes = classes;
+        dataCache.calls = calls;
+        dataCache.components = components;
+        dataCache.inherits = inherits;
+
+        // 加载所有类的方法数据
+        if (classes && classes.length > 0) {
+          const allMethods = [];
+          // 并行加载每个类的方法，但限制并发数
+          const batchSize = 10;
+          for (let i = 0; i < classes.length; i += batchSize) {
+            const batch = classes.slice(i, i + batchSize);
+            const results = await Promise.allSettled(
+              batch.map(cls => apiGet(`/api/methods?class_name=${encodeURIComponent(cls.name)}`))
+            );
+            results.forEach(r => {
+              if (r.status === 'fulfilled' && r.value) {
+                allMethods.push(...r.value);
+              }
+            });
+          }
+          dataCache.methods = allMethods;
+        }
+
+        return true;
+      } catch (e) {
+        console.error('加载数据失败:', e);
+        showToast('加载数据失败: ' + e.message, 'error');
+        return false;
+      }
+    }
+
+    async function refreshData() {
+      const icon = document.getElementById('refreshIcon');
+      icon.style.animation = 'spin 0.8s linear infinite';
+      showToast('正在刷新数据...', 'info');
+
+      try {
+        await loadAllData();
+        // 重新初始化当前活跃页面
+        const activePage = document.querySelector('.nav-tab.active');
+        if (activePage) {
+          const pageName = activePage.dataset.page;
+          if (pageName === 'overview') initOverview();
+          if (pageName === 'graph') { network = null; initGraph(); }
+          if (pageName === 'explorer') initExplorer();
+        }
+        showToast('数据刷新完成', 'success');
+      } catch (e) {
+        showToast('刷新失败: ' + e.message, 'error');
+      } finally {
+        icon.style.animation = '';
+      }
+    }
+
+    // ========================================
+    // 页面1：总览初始化
+    // ========================================
+    function initOverview() {
+      updateStatsCards();
+      initCharts();
+      initComponentTable();
+    }
+
+    // 更新统计卡片
+    function updateStatsCards() {
+      const stats = dataCache.stats;
+      if (!stats) return;
+
+      const setCardValue = (id, value) => {
+        const card = document.getElementById(id);
+        if (card) {
+          const valueEl = card.querySelector('.text-2xl');
+          if (valueEl) valueEl.textContent = value;
+        }
+      };
+
+      setCardValue('stat-files', stats.file_count || 0);
+      setCardValue('stat-classes', stats.component_count || 0);
+      setCardValue('stat-entry', stats.entry_count || 0);
+      setCardValue('stat-methods', stats.method_count || 0);
+      setCardValue('stat-calls', stats.call_count || 0);
+      setCardValue('stat-components', stats.component_relation_count || 0);
+    }
+
+    // 初始化图表
+    function initCharts() {
+      initEntityTypeChart();
+      initFileDirChart();
+      initMethodsPerClassChart();
+    }
+
+    // 实体类型分布（环形图）
+    function initEntityTypeChart() {
+      const ctx = document.getElementById('chartEntityType').getContext('2d');
+      if (chartEntityType) chartEntityType.destroy();
+
+      const stats = dataCache.stats || {};
+      const textColor = isDarkMode ? '#a0aec0' : '#475569';
+
+      chartEntityType = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['类/组件', '方法', '调用关系', '组件关系', '继承关系'],
+          datasets: [{
+            data: [
+              stats.class_count || 0,
+              stats.method_count || 0,
+              stats.call_count || 0,
+              stats.component_relation_count || 0,
+              stats.inherit_count || 0
+            ],
+            backgroundColor: [
+              '#F87254', '#3CDDDD', '#a78bfa', '#f472b6', '#fbbf24'
+            ],
+            borderWidth: 0,
+            hoverOffset: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '60%',
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: textColor, padding: 12, usePointStyle: true, pointStyleWidth: 8, font: { size: 11 } }
+            }
+          }
+        }
+      });
+    }
+
+    // 文件目录分布（饼图）
+    function initFileDirChart() {
+      const ctx = document.getElementById('chartFileDir').getContext('2d');
+      if (chartFileDir) chartFileDir.destroy();
+
+      const files = dataCache.files || [];
+      const dirMap = {};
+      files.forEach(f => {
+        const parts = f.path.split('/');
+        // 取前两级目录
+        const dir = parts.length > 2 ? parts.slice(0, 2).join('/') : (parts[0] || 'root');
+        dirMap[dir] = (dirMap[dir] || 0) + 1;
+      });
+
+      const labels = Object.keys(dirMap);
+      const values = Object.values(dirMap);
+      const colors = [
+        '#F87254', '#3CDDDD', '#a78bfa', '#f472b6', '#fbbf24',
+        '#34d399', '#60a5fa', '#fb923c', '#e879f9', '#4ade80'
+      ];
+      const textColor = isDarkMode ? '#a0aec0' : '#475569';
+
+      chartFileDir = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: values,
+            backgroundColor: colors.slice(0, labels.length),
+            borderWidth: 0,
+            hoverOffset: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: textColor, padding: 8, usePointStyle: true, pointStyleWidth: 8, font: { size: 10 } }
+            }
+          }
+        }
+      });
+    }
+
+    // 各组件方法数（柱状图）
+    function initMethodsPerClassChart() {
+      const ctx = document.getElementById('chartMethodsPerClass').getContext('2d');
+      if (chartMethodsPerClass) chartMethodsPerClass.destroy();
+
+      const methods = dataCache.methods || [];
+      const classMethodCount = {};
+      methods.forEach(m => {
+        classMethodCount[m.class_name] = (classMethodCount[m.class_name] || 0) + 1;
+      });
+
+      // 按方法数排序，取前 15 个
+      const sorted = Object.entries(classMethodCount)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 15);
+
+      const labels = sorted.map(s => s[0].length > 16 ? s[0].substring(0, 14) + '..' : s[0]);
+      const values = sorted.map(s => s[1]);
+      const textColor = isDarkMode ? '#a0aec0' : '#475569';
+      const gridColor = isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+
+      chartMethodsPerClass = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: '方法数',
+            data: values,
+            backgroundColor: 'rgba(248, 114, 84, 0.6)',
+            borderColor: '#F87254',
+            borderWidth: 1,
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: 'y',
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            x: {
+              ticks: { color: textColor, font: { size: 10 } },
+              grid: { color: gridColor }
+            },
+            y: {
+              ticks: { color: textColor, font: { size: 10 } },
+              grid: { display: false }
+            }
+          }
+        }
+      });
+    }
+
+    // 组件列表
+    function initComponentTable() {
+      const classes = dataCache.classes || [];
+      const tbody = document.getElementById('componentTableBody');
+
+      if (!classes.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center opacity-50 py-8">暂无数据</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = classes.map(cls => {
+        const type = cls.is_entry ? '入口组件' : (cls.is_component ? '组件' : '类');
+        const typeColor = cls.is_entry ? 'text-green-400' : (cls.is_component ? 'text-coral' : 'text-cyan');
+        return `
+          <tr>
+            <td class="font-medium">${escapeHtml(cls.name)}</td>
+            <td class="opacity-70 text-xs">${escapeHtml(cls.file)}</td>
+            <td>${cls.line_number || '-'}</td>
+            <td><span class="${typeColor} text-xs font-semibold">${type}</span></td>
+            <td>
+              <button class="btn-secondary text-xs" onclick="navigateToGraphNode('${escapeHtml(cls.name)}')">
+                在图谱中查看
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // 快捷查询 - 跳转到 AI 查询页面并填入问题
+    function quickQuery(question) {
+      switchPage('aiquery');
+      document.getElementById('aiQuestion').value = question;
+    }
+
+    // ========================================
+    // 页面2：关系图谱
+    // ========================================
+    function initGraph() {
+      const loading = document.getElementById('graphLoading');
+      loading.style.display = 'flex';
+
+      try {
+        createGraph();
+      } catch (e) {
+        console.error('创建图谱失败:', e);
+        showToast('创建图谱失败: ' + e.message, 'error');
+      } finally {
+        loading.style.display = 'none';
+      }
+    }
+
+    function createGraph() {
+      const classes = dataCache.classes || [];
+      const calls = dataCache.calls || [];
+      const components = dataCache.components || [];
+      const inherits = dataCache.inherits || [];
+      const methods = dataCache.methods || [];
+
+      const nodes = [];
+      const edges = [];
+      const nodeSet = new Set();
+
+      // 添加类/组件节点
+      classes.forEach(cls => {
+        if (nodeSet.has(cls.name)) return;
+        nodeSet.add(cls.name);
+        const isComponent = cls.is_component || cls.is_entry;
+        nodes.push({
+          id: cls.name,
+          label: cls.name,
+          shape: isComponent ? 'box' : 'ellipse',
+          color: {
+            background: isComponent ? '#F87254' : '#3CDDDD',
+            border: isComponent ? '#e05535' : '#2ab8b8',
+            highlight: {
+              background: isComponent ? '#ff8a6a' : '#5eeaea',
+              border: isComponent ? '#F87254' : '#3CDDDD'
+            }
+          },
+          font: { color: '#fff', size: 13, face: 'sans-serif' },
+          size: isComponent ? 28 : 22,
+          borderWidth: 2,
+          shadow: true,
+          data: { type: isComponent ? 'component' : 'class', ...cls }
+        });
+      });
+
+      // 添加方法节点（可选，默认不显示以减少复杂度）
+      // 仅当筛选面板勾选了"方法"时才添加
+      const showMethods = document.querySelector('[data-filter="entity"][value="method"]')?.checked;
+      if (showMethods && methods.length < 500) {
+        methods.forEach(m => {
+          const nodeId = `${m.class_name}.${m.name}`;
+          if (nodeSet.has(nodeId)) return;
+          nodeSet.add(nodeId);
+          nodes.push({
+            id: nodeId,
+            label: m.name,
+            shape: 'diamond',
+            color: {
+              background: '#a78bfa',
+              border: '#8b5cf6',
+              highlight: { background: '#c4b5fd', border: '#a78bfa' }
+            },
+            font: { color: '#fff', size: 10 },
+            size: 14,
+            borderWidth: 1,
+            shadow: true,
+            data: { type: 'method', ...m }
+          });
+        });
+      }
+
+      // 添加包含关系边（组件嵌套）
+      components.forEach(rel => {
+        edges.push({
+          from: rel.parent,
+          to: rel.child,
+          arrows: { to: { enabled: true, type: 'arrow' } },
+          color: { color: '#a78bfa', opacity: 0.7 },
+          width: 2,
+          dashes: false,
+          smooth: { type: 'curvedCW', roundness: 0.2 },
+          data: { type: 'component', ...rel }
+        });
+      });
+
+      // 添加调用关系边（类级别聚合）
+      // 将方法级调用聚合为类级别调用，并统计调用次数
+      const classCallMap = new Map(); // key: "CallerClass->CalleeClass", value: count
+      calls.forEach(call => {
+        const fromClass = call.caller_class;
+        const toClass = call.callee_class || call.callee; // 如果 callee_class 为空，尝试用 callee（可能是类名）
+        
+        // 跳过无效的调用关系
+        if (!fromClass || !toClass) return;
+        // 跳过自调用（类内部调用）
+        if (fromClass === toClass) return;
+        // 跳过未知类调用（如 console, Promise 等）
+        if (!nodeSet.has(toClass) && toClass[0] === toClass[0].toLowerCase()) return;
+        
+        const key = `${fromClass}->${toClass}`;
+        classCallMap.set(key, (classCallMap.get(key) || 0) + 1);
+      });
+      
+      // 创建聚合后的调用关系边
+      classCallMap.forEach((count, key) => {
+        const [fromClass, toClass] = key.split('->');
+        edges.push({
+          id: `call-${key}`,
+          from: fromClass,
+          to: toClass,
+          label: count > 1 ? `${count}次` : '',
+          title: `${fromClass} 调用 ${toClass} (${count}次)`,
+          arrows: { to: { enabled: true, type: 'arrow' } },
+          color: { color: '#6b7280', opacity: 0.6 },
+          width: Math.min(1 + count * 0.3, 4), // 根据调用次数调整线宽
+          dashes: [6, 4],
+          smooth: { type: 'curvedCW', roundness: 0.15 },
+          data: { type: 'call', count }
+        });
+      });
+
+      // 添加继承关系边
+      inherits.forEach(rel => {
+        edges.push({
+          from: rel.child_class,
+          to: rel.parent_class,
+          arrows: { to: { enabled: true, type: 'arrow' } },
+          color: { color: '#fbbf24', opacity: 0.7 },
+          width: 2,
+          dashes: [3, 3],
+          smooth: { type: 'straight' },
+          data: { type: 'inherit', ...rel }
+        });
+      });
+
+      graphNodes = new vis.DataSet(nodes);
+      graphEdges = new vis.DataSet(edges);
+
+      const container = document.getElementById('graph-canvas');
+      const layoutType = document.getElementById('layoutSelect').value;
+
+      const options = getGraphOptions(layoutType);
+
+      network = new vis.Network(container, { nodes: graphNodes, edges: graphEdges }, options);
+
+      // 点击节点显示详情
+      network.on('click', function(params) {
+        if (params.nodes.length > 0) {
+          const nodeId = params.nodes[0];
+          showNodeDetail(nodeId);
+        } else {
+          closeDetailPanel();
+        }
+      });
+
+      // 双击节点聚焦
+      network.on('doubleClick', function(params) {
+        if (params.nodes.length > 0) {
+          network.focus(params.nodes[0], { scale: 1.5, animation: { duration: 500, easingFunction: 'easeInOutQuad' } });
+        }
+      });
+    }
+
+    function getGraphOptions(layoutType) {
+      const baseOptions = {
+        physics: {
+          enabled: true,
+          solver: 'forceAtlas2Based',
+          forceAtlas2Based: {
+            gravitationalConstant: -80,
+            centralGravity: 0.008,
+            springLength: 180,
+            springConstant: 0.04,
+            damping: 0.5
+          },
+          stabilization: { iterations: 150 }
+        },
+        interaction: {
+          hover: true,
+          tooltipDelay: 200,
+          zoomView: true,
+          dragView: true,
+          navigationButtons: false
+        },
+        edges: {
+          smooth: { type: 'continuous' }
+        }
+      };
+
+      if (layoutType === 'hierarchical') {
+        baseOptions.physics = false;
+        baseOptions.layout = {
+          hierarchical: {
+            enabled: true,
+            direction: 'LR',
+            sortMethod: 'directed',
+            levelSeparation: 200,
+            nodeSpacing: 80,
+            blockShifting: true,
+            edgeMinimization: true
+          }
         };
+      } else if (layoutType === 'circular') {
+        baseOptions.physics = false;
+        baseOptions.layout = {
+          circular: {
+            enabled: true,
+            nodeSpacing: 120,
+            radius: 300
+          }
+        };
+      }
 
-        // 页面切换
-        document.querySelectorAll('.nav-tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                
-                const targetPage = tab.dataset.tab + '-page';
-                document.querySelectorAll('.page-content').forEach(page => {
-                    page.classList.add('hidden');
-                });
-                document.getElementById(targetPage).classList.remove('hidden');
-                
-                if (tab.dataset.tab === 'graph') {
-                    setTimeout(initGraph, 100);
-                }
+      return baseOptions;
+    }
+
+    function changeLayout() {
+      if (!network) return;
+      const layoutType = document.getElementById('layoutSelect').value;
+      const options = getGraphOptions(layoutType);
+      network.setOptions(options);
+      if (layoutType === 'force') {
+        network.stabilize(150);
+      }
+    }
+
+    // 更新图谱筛选
+    function updateGraphFilters() {
+      if (!network || !graphNodes || !graphEdges) return;
+
+      // 获取筛选状态
+      const entityFilters = {};
+      document.querySelectorAll('[data-filter="entity"]').forEach(cb => {
+        entityFilters[cb.value] = cb.checked;
+      });
+      const relationFilters = {};
+      document.querySelectorAll('[data-filter="relation"]').forEach(cb => {
+        relationFilters[cb.value] = cb.checked;
+      });
+
+      // 过滤节点
+      const allNodes = graphNodes.get();
+      allNodes.forEach(node => {
+        const type = node.data?.type;
+        let visible = true;
+        if (type === 'component' && !entityFilters.component) visible = false;
+        if (type === 'class' && !entityFilters.class) visible = false;
+        if (type === 'method' && !entityFilters.method) visible = false;
+        if (type === 'file' && !entityFilters.file) visible = false;
+        graphNodes.update({ id: node.id, hidden: !visible });
+      });
+
+      // 过滤边
+      const allEdges = graphEdges.get();
+      allEdges.forEach(edge => {
+        const type = edge.data?.type;
+        let visible = true;
+        if (type === 'component' && !relationFilters.component) visible = false;
+        if (type === 'call' && !relationFilters.call) visible = false;
+        if (type === 'inherit' && !relationFilters.inherit) visible = false;
+        graphEdges.update({ id: edge.id, hidden: !visible });
+      });
+    }
+
+    // 绑定筛选事件
+    document.querySelectorAll('[data-filter]').forEach(cb => {
+      cb.addEventListener('change', updateGraphFilters);
+    });
+
+    // 搜索防抖
+    function debounceSearch() {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        const query = document.getElementById('graphSearch').value.trim();
+        searchAndHighlight(query);
+      }, 300);
+    }
+
+    // 搜索并高亮节点
+    async function searchAndHighlight(query) {
+      if (!network || !graphNodes) return;
+
+      if (!query) {
+        // 清空搜索，恢复所有节点
+        const allNodes = graphNodes.get();
+        allNodes.forEach(node => {
+          graphNodes.update({
+            id: node.id,
+            opacity: 1,
+            size: node.data?.type === 'component' ? 28 : (node.data?.type === 'class' ? 22 : 14),
+            borderWidth: node.data?.type === 'method' ? 1 : 2
+          });
+        });
+        return;
+      }
+
+      try {
+        const results = await apiGet(`/api/search?q=${encodeURIComponent(query)}`);
+        const matchSet = new Set();
+
+        // 收集所有匹配的名称
+        if (results.classes) results.classes.forEach(c => matchSet.add(c.name));
+        if (results.methods) results.methods.forEach(m => matchSet.add(m.name));
+        if (results.files) results.files.forEach(f => matchSet.add(f.path));
+
+        // 也尝试直接匹配节点 ID
+        const allNodes = graphNodes.get();
+        allNodes.forEach(node => {
+          const isMatch = node.id.toLowerCase().includes(query.toLowerCase()) || matchSet.has(node.id);
+          if (isMatch) {
+            graphNodes.update({
+              id: node.id,
+              opacity: 1,
+              size: (node.data?.type === 'component' ? 28 : (node.data?.type === 'class' ? 22 : 14)) * 1.5,
+              borderWidth: 4,
+              shadow: true
             });
+          } else {
+            graphNodes.update({
+              id: node.id,
+              opacity: 0.2,
+              size: node.data?.type === 'component' ? 28 : (node.data?.type === 'class' ? 22 : 14),
+              borderWidth: 1,
+              shadow: false
+            });
+          }
         });
 
-        // 初始化图表
-        function initCharts() {
-            // 实体分布饼图
-            const entityCtx = document.getElementById('entity-chart').getContext('2d');
-            new Chart(entityCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['组件', '类', '方法'],
-                    datasets: [{
-                        data: [6, 2, 44],
-                        backgroundColor: ['#F87254', '#3CDDDD', '#957AFF'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { boxWidth: 12, padding: 15, font: { size: 11 } }
-                        }
-                    }
-                }
-            });
-
-            // 文件目录分布
-            const fileCtx = document.getElementById('file-chart').getContext('2d');
-            new Chart(fileCtx, {
-                type: 'pie',
-                data: {
-                    labels: ['pages', 'components', 'utils'],
-                    datasets: [{
-                        data: [2, 4, 2],
-                        backgroundColor: ['#EDAA45', '#F87254', '#3CDDDD'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { boxWidth: 12, padding: 15, font: { size: 11 } }
-                        }
-                    }
-                }
-            });
-
-            // 各组件方法数
-            const methodCtx = document.getElementById('method-chart').getContext('2d');
-            new Chart(methodCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['Index', 'UserService', 'Logger', 'UserDetail', 'UserCard', 'Footer', 'Header', 'Avatar'],
-                    datasets: [{
-                        label: '方法数',
-                        data: [12, 6, 5, 5, 5, 5, 4, 2],
-                        backgroundColor: '#957AFF',
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { beginAtZero: true, ticks: { font: { size: 10 } } },
-                        x: { ticks: { font: { size: 10 }, maxRotation: 45 } }
-                    }
-                }
-            });
+        // 聚焦到第一个匹配节点
+        const firstMatch = allNodes.find(n => n.id.toLowerCase().includes(query.toLowerCase()) || matchSet.has(n.id));
+        if (firstMatch) {
+          network.focus(firstMatch.id, { scale: 1.2, animation: { duration: 500 } });
         }
+      } catch (e) {
+        console.warn('搜索失败:', e);
+        // 回退到本地搜索
+        const allNodes = graphNodes.get();
+        allNodes.forEach(node => {
+          const isMatch = node.id.toLowerCase().includes(query.toLowerCase());
+          graphNodes.update({
+            id: node.id,
+            opacity: isMatch ? 1 : 0.2,
+            size: isMatch ? (node.data?.type === 'component' ? 42 : 33) : (node.data?.type === 'component' ? 28 : 22),
+            borderWidth: isMatch ? 4 : 1,
+            shadow: isMatch
+          });
+        });
+      }
+    }
 
-        // 初始化组件列表
-        function initComponentList() {
-            const container = document.getElementById('component-list');
-            const components = kgData.classes.filter(c => c.isComponent);
-            
-            components.forEach(comp => {
-                const item = document.createElement('div');
-                item.className = 'entity-card component p-3';
-                item.innerHTML = `
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <i data-lucide="box" class="w-4 h-4 text-coral-500"></i>
-                            <span class="font-medium text-sm">${comp.name}</span>
-                            ${comp.isEntry ? '<span class="badge entry">入口</span>' : ''}
-                        </div>
-                        <span class="text-xs text-slate-400">${comp.methods.length} 方法</span>
-                    </div>
-                    <div class="text-xs text-slate-400 mt-1 truncate">${comp.file}</div>
-                `;
-                container.appendChild(item);
-            });
-            lucide.createIcons();
-        }
+    // 显示节点详情
+    async function showNodeDetail(nodeId) {
+      const panel = document.getElementById('detailPanel');
+      const title = document.getElementById('detailTitle');
+      const content = document.getElementById('detailContent');
 
-        // 初始化图谱
-        let network = null;
-        function initGraph() {
-            if (network) return;
-            
-            const nodes = [];
-            const edges = [];
-            
-            // 添加组件节点
-            kgData.classes.forEach((cls, index) => {
-                nodes.push({
-                    id: cls.name,
-                    label: cls.name,
-                    color: cls.isComponent ? '#F87254' : '#3CDDDD',
-                    shape: 'box',
-                    font: { color: '#fff', size: 14 },
-                    margin: 10,
-                    shadow: { enabled: true, color: 'rgba(0,0,0,0.2)', size: 5 }
-                });
-            });
-            
-            // 添加嵌套关系边
-            kgData.componentRelations.forEach(rel => {
-                edges.push({
-                    from: rel.parent,
-                    to: rel.child,
-                    label: '包含',
-                    color: { color: '#957AFF' },
-                    arrows: { to: { enabled: true, scaleFactor: 0.5 } },
-                    smooth: { type: 'cubicBezier' }
-                });
-            });
-            
-            // 添加调用关系边
-            kgData.callRelations.forEach(rel => {
-                const caller = rel.caller.split('.')[0];
-                const callee = rel.callee.split('.')[0];
-                if (caller !== callee) {
-                    const existingEdge = edges.find(e => e.from === caller && e.to === callee);
-                    if (!existingEdge) {
-                        edges.push({
-                            from: caller,
-                            to: callee,
-                            label: '调用',
-                            color: { color: '#ABABAB', opacity: 0.5 },
-                            arrows: { to: { enabled: true, scaleFactor: 0.3 } },
-                            dashes: true,
-                            smooth: { type: 'continuous' }
-                        });
-                    }
-                }
-            });
-            
-            const container = document.getElementById('graph-container');
-            const data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
-            
-            const options = {
-                layout: { improvedLayout: true },
-                physics: {
-                    enabled: true,
-                    barnesHut: {
-                        gravitationalConstant: -2000,
-                        centralGravity: 0.3,
-                        springLength: 150,
-                        springConstant: 0.04
-                    }
-                },
-                interaction: {
-                    hover: true,
-                    tooltipDelay: 200,
-                    hideEdgesOnDrag: true
-                }
-            };
-            
-            network = new vis.Network(container, data, options);
-            
-            network.on('click', params => {
-                if (params.nodes.length > 0) {
-                    showEntityDetail(params.nodes[0]);
-                }
-            });
-        }
+      title.textContent = nodeId;
+      content.innerHTML = '<div class="flex items-center gap-2"><div class="loading-spinner"></div><span class="text-sm opacity-60">加载中...</span></div>';
+      panel.classList.add('open');
 
-        // 显示实体详情
-        function showEntityDetail(entityName) {
-            const cls = kgData.classes.find(c => c.name === entityName);
-            if (!cls) return;
-            
-            document.getElementById('modal-title').textContent = entityName;
-            
-            const content = document.getElementById('modal-content');
-            content.innerHTML = `
-                <div class="space-y-4">
-                    <div class="flex items-center gap-3">
-                        <span class="badge ${cls.isComponent ? 'component' : 'class'}">${cls.isComponent ? '组件' : '类'}</span>
-                        ${cls.isEntry ? '<span class="badge entry">入口</span>' : ''}
-                    </div>
-                    
-                    <div>
-                        <label class="text-xs text-slate-500">文件路径</label>
-                        <div class="text-sm font-mono bg-slate-50 p-2 rounded mt-1">${cls.file}</div>
-                    </div>
-                    
-                    <div>
-                        <label class="text-xs text-slate-500">定义位置</label>
-                        <div class="text-sm mt-1">第 ${cls.lineNumber} 行</div>
-                    </div>
-                    
-                    <div>
-                        <label class="text-xs text-slate-500">方法列表 (${cls.methods.length})</label>
-                        <div class="grid grid-cols-2 gap-2 mt-2">
-                            ${cls.methods.map(m => `
-                                <div class="text-sm p-2 bg-slate-50 rounded flex items-center gap-2">
-                                    <i data-lucide="function-square" class="w-3 h-3 text-indigo-500"></i>
-                                    ${m}()
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                    
-                    ${cls.isComponent ? `
-                        <div>
-                            <label class="text-xs text-slate-500">子组件</label>
-                            <div class="flex flex-wrap gap-2 mt-2">
-                                ${kgData.componentRelations
-                                    .filter(r => r.parent === cls.name)
-                                    .map(r => `<span class="badge component">${r.child}</span>`)
-                                    .join('') || '<span class="text-sm text-slate-400">无子组件</span>'}
-                            </div>
-                        </div>
-                    ` : ''}
+      try {
+        // 尝试调用详情 API
+        const detail = await apiGet(`/api/class/${encodeURIComponent(nodeId)}/detail`);
+        renderDetailContent(detail, nodeId);
+      } catch (e) {
+        // 如果 API 不存在，使用缓存数据构建详情
+        renderDetailFromCache(nodeId);
+      }
+    }
+
+    function renderDetailContent(detail, nodeId) {
+      const content = document.getElementById('detailContent');
+      const info = detail.class_info || {};
+      const methods = detail.methods || [];
+      const outgoing = detail.outgoing_calls || [];
+      const incoming = detail.incoming_calls || [];
+      const childComponents = detail.child_components || [];
+      const parentComponents = detail.parent_components || [];
+      const inheritInfo = detail.inherit_info || [];
+
+      let html = '';
+
+      // 基本信息
+      html += `
+        <div class="mb-5">
+          <div class="text-xs font-semibold opacity-50 mb-2 uppercase tracking-wider">基本信息</div>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between"><span class="opacity-60">类名</span><span class="font-medium">${escapeHtml(info.name || nodeId)}</span></div>
+            <div class="flex justify-between"><span class="opacity-60">文件</span><span class="text-xs opacity-80">${escapeHtml(info.file || '-')}</span></div>
+            <div class="flex justify-between"><span class="opacity-60">行号</span><span>${info.line_number || '-'}</span></div>
+            <div class="flex justify-between"><span class="opacity-60">类型</span><span>${info.is_entry ? '入口组件' : (info.is_component ? '组件' : '类')}</span></div>
+          </div>
+        </div>
+      `;
+
+      // 方法列表
+      if (methods.length > 0) {
+        html += `
+          <div class="mb-5">
+            <div class="text-xs font-semibold opacity-50 mb-2 uppercase tracking-wider">方法列表 (${methods.length})</div>
+            <div class="space-y-1">
+              ${methods.map(m => `
+                <div class="flex items-center justify-between text-sm py-1 px-2 rounded" style="background:rgba(255,255,255,0.03);">
+                  <span>${escapeHtml(m.name)}</span>
+                  <span class="text-xs opacity-40">${m.is_static ? 'static ' : ''}${m.is_private ? 'private' : 'public'}</span>
                 </div>
-            `;
-            lucide.createIcons();
-            
-            document.getElementById('detail-modal').classList.remove('hidden');
-        }
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
 
-        // 关闭弹窗
-        document.getElementById('close-modal').addEventListener('click', () => {
-            document.getElementById('detail-modal').classList.add('hidden');
-        });
-
-        // 初始化文件树
-        function initFileTree() {
-            const tree = document.getElementById('file-tree');
-            const structure = {
-                'test_arkts_project': {
-                    'pages': ['Index.ets', 'UserDetail.ets'],
-                    'components': ['UserCard.ets', 'Header.ets', 'Footer.ets', 'Avatar.ets'],
-                    'utils': ['UserService.ets', 'Logger.ets']
-                }
-            };
-            
-            function buildTree(obj, level = 0) {
-                let html = '';
-                for (const [key, value] of Object.entries(obj)) {
-                    if (Array.isArray(value)) {
-                        html += `<div class="tree-item" style="padding-left: ${level * 16}px">
-                            <i data-lucide="folder" class="w-4 h-4 text-amber-500"></i>
-                            <span class="font-medium">${key}</span>
-                        </div>`;
-                        value.forEach(file => {
-                            html += `<div class="tree-item tree-file" data-file="test_arkts_project/${key}/${file}" style="padding-left: ${(level + 1) * 16}px">
-                                <i data-lucide="file-code" class="w-4 h-4 text-slate-400"></i>
-                                <span class="text-sm text-slate-600">${file}</span>
-                            </div>`;
-                        });
-                    } else {
-                        html += `<div class="tree-item" style="padding-left: ${level * 16}px">
-                            <i data-lucide="folder-open" class="w-4 h-4 text-amber-500"></i>
-                            <span class="font-medium">${key}</span>
-                        </div>`;
-                        html += buildTree(value, level + 1);
-                    }
-                }
-                return html;
-            }
-            
-            tree.innerHTML = buildTree(structure);
-            lucide.createIcons();
-            
-            // 文件点击事件
-            document.querySelectorAll('.tree-file').forEach(item => {
-                item.addEventListener('click', () => {
-                    document.querySelectorAll('.tree-file').forEach(f => f.classList.remove('active'));
-                    item.classList.add('active');
-                    loadCodeFile(item.dataset.file);
-                });
-            });
-        }
-
-        // 加载代码文件
-        function loadCodeFile(filePath) {
-            document.getElementById('current-file').textContent = filePath.replace('test_arkts_project/', '');
-            const code = codeContents[filePath] || '// 代码内容加载中...';
-            
-            const lines = code.split('\n');
-            const html = lines.map((line, i) => `
-                <div class="code-line">
-                    <span class="line-number">${i + 1}</span>
-                    <span class="line-content">${escapeHtml(line) || ' '}</span>
+      // 子组件
+      if (childComponents.length > 0) {
+        html += `
+          <div class="mb-5">
+            <div class="text-xs font-semibold opacity-50 mb-2 uppercase tracking-wider">包含的子组件 (${childComponents.length})</div>
+            <div class="space-y-1">
+              ${childComponents.map(c => `
+                <div class="text-sm py-1 px-2 rounded cursor-pointer hover:opacity-80" style="background:rgba(248,114,84,0.08);" onclick="showNodeDetail('${escapeHtml(c.child || c.name || '')}')">
+                  ${escapeHtml(c.child || c.name || '')}
                 </div>
-            `).join('');
-            
-            document.getElementById('code-content').innerHTML = html;
-        }
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
 
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // AI 查询功能
-        document.getElementById('submit-query').addEventListener('click', async () => {
-            const query = document.getElementById('query-input').value.trim();
-            const apiKey = document.getElementById('api-key').value.trim();
-            
-            if (!query) {
-                alert('请输入查询问题');
-                return;
-            }
-            
-            const resultDiv = document.getElementById('query-result');
-            resultDiv.innerHTML = `
-                <div class="flex items-center justify-center py-10">
-                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-                    <span class="ml-3 text-slate-500">正在生成 SQL 查询...</span>
+      // 调用关系（增强：显示完整调用链）
+      if (outgoing.length > 0) {
+        // 按被调用类分组
+        const outgoingByClass = {};
+        outgoing.forEach(c => {
+          const targetClass = c.callee_class || '未知';
+          if (!outgoingByClass[targetClass]) outgoingByClass[targetClass] = [];
+          outgoingByClass[targetClass].push(c);
+        });
+        
+        html += `
+          <div class="mb-5">
+            <div class="text-xs font-semibold opacity-50 mb-2 uppercase tracking-wider">调用的方法 (${outgoing.length})</div>
+            <div class="space-y-2">
+              ${Object.entries(outgoingByClass).slice(0, 10).map(([targetClass, calls]) => `
+                <div class="p-2 rounded" style="background:rgba(107,114,128,0.08);">
+                  <div class="text-xs opacity-50 mb-1">→ ${escapeHtml(targetClass)}</div>
+                  <div class="flex flex-wrap gap-1">
+                    ${calls.slice(0, 8).map(c => `<span class="text-xs px-1.5 py-0.5 rounded" style="background:rgba(167,139,250,0.15);">${escapeHtml(c.callee || c.name || '')}()</span>`).join('')}
+                    ${calls.length > 8 ? `<span class="text-xs opacity-40">+${calls.length - 8}</span>` : ''}
+                  </div>
                 </div>
-            `;
-            
-            // 模拟 AI 响应
-            setTimeout(() => {
-                const mockResults = generateMockResult(query);
-                resultDiv.innerHTML = mockResults;
-            }, 1500);
+              `).join('')}
+              ${Object.keys(outgoingByClass).length > 10 ? `<div class="text-xs opacity-40 text-center">...还有 ${Object.keys(outgoingByClass).length - 10} 个类</div>` : ''}
+            </div>
+          </div>
+        `;
+      }
+
+      if (incoming.length > 0) {
+        // 按调用者类分组
+        const incomingByClass = {};
+        incoming.forEach(c => {
+          const sourceClass = c.caller_class || '未知';
+          if (!incomingByClass[sourceClass]) incomingByClass[sourceClass] = [];
+          incomingByClass[sourceClass].push(c);
+        });
+        
+        html += `
+          <div class="mb-5">
+            <div class="text-xs font-semibold opacity-50 mb-2 uppercase tracking-wider">被调用于 (${incoming.length})</div>
+            <div class="space-y-2">
+              ${Object.entries(incomingByClass).slice(0, 10).map(([sourceClass, calls]) => `
+                <div class="p-2 rounded" style="background:rgba(60,221,221,0.08);">
+                  <div class="text-xs opacity-50 mb-1">← ${escapeHtml(sourceClass)}</div>
+                  <div class="flex flex-wrap gap-1">
+                    ${calls.slice(0, 8).map(c => `<span class="text-xs px-1.5 py-0.5 rounded" style="background:rgba(60,221,221,0.15);">${escapeHtml(c.caller || c.name || '')}()</span>`).join('')}
+                    ${calls.length > 8 ? `<span class="text-xs opacity-40">+${calls.length - 8}</span>` : ''}
+                  </div>
+                </div>
+              `).join('')}
+              ${Object.keys(incomingByClass).length > 10 ? `<div class="text-xs opacity-40 text-center">...还有 ${Object.keys(incomingByClass).length - 10} 个类</div>` : ''}
+            </div>
+          </div>
+        `;
+      }
+
+      // 继承信息
+      if (inheritInfo.length > 0) {
+        html += `
+          <div class="mb-5">
+            <div class="text-xs font-semibold opacity-50 mb-2 uppercase tracking-wider">继承关系</div>
+            <div class="space-y-1">
+              ${inheritInfo.map(i => `
+                <div class="text-sm py-1 px-2 rounded" style="background:rgba(251,191,36,0.08);">
+                  ${escapeHtml(i.parent_class || i.name || '')}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      content.innerHTML = html || '<div class="text-sm opacity-40 text-center py-8">暂无详细信息</div>';
+    }
+
+    function renderDetailFromCache(nodeId) {
+      const content = document.getElementById('detailContent');
+      const classes = dataCache.classes || [];
+      const methods = dataCache.methods || [];
+      const calls = dataCache.calls || [];
+      const components = dataCache.components || [];
+      const inherits = dataCache.inherits || [];
+
+      // 查找类信息
+      const cls = classes.find(c => c.name === nodeId);
+      // 查找方法
+      const clsMethods = methods.filter(m => m.class_name === nodeId);
+      // 查找调用关系
+      const outgoingCalls = calls.filter(c => c.caller === nodeId || c.caller_class === nodeId);
+      const incomingCalls = calls.filter(c => c.callee === nodeId || c.callee_class === nodeId);
+      // 查找组件关系
+      const childComps = components.filter(c => c.parent === nodeId);
+      const parentComps = components.filter(c => c.child === nodeId);
+      // 查找继承
+      const childInherits = inherits.filter(i => i.child_class === nodeId);
+      const parentInherits = inherits.filter(i => i.parent_class === nodeId);
+
+      let html = '';
+
+      // 基本信息
+      html += `
+        <div class="mb-5">
+          <div class="text-xs font-semibold opacity-50 mb-2 uppercase tracking-wider">基本信息</div>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between"><span class="opacity-60">名称</span><span class="font-medium">${escapeHtml(nodeId)}</span></div>
+            ${cls ? `
+              <div class="flex justify-between"><span class="opacity-60">文件</span><span class="text-xs opacity-80">${escapeHtml(cls.file)}</span></div>
+              <div class="flex justify-between"><span class="opacity-60">行号</span><span>${cls.line_number || '-'}</span></div>
+              <div class="flex justify-between"><span class="opacity-60">类型</span><span>${cls.is_entry ? '入口组件' : (cls.is_component ? '组件' : '类')}</span></div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+
+      if (clsMethods.length > 0) {
+        html += `
+          <div class="mb-5">
+            <div class="text-xs font-semibold opacity-50 mb-2 uppercase tracking-wider">方法 (${clsMethods.length})</div>
+            <div class="space-y-1">
+              ${clsMethods.map(m => `
+                <div class="flex items-center justify-between text-sm py-1 px-2 rounded" style="background:rgba(255,255,255,0.03);">
+                  <span>${escapeHtml(m.name)}</span>
+                  <span class="text-xs opacity-40">${m.is_static ? 'static ' : ''}${m.is_private ? 'private' : 'public'}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      if (childComps.length > 0) {
+        html += `
+          <div class="mb-5">
+            <div class="text-xs font-semibold opacity-50 mb-2 uppercase tracking-wider">子组件 (${childComps.length})</div>
+            <div class="space-y-1">
+              ${childComps.map(c => `
+                <div class="text-sm py-1 px-2 rounded cursor-pointer" style="background:rgba(248,114,84,0.08);" onclick="showNodeDetail('${escapeHtml(c.child)}')">
+                  ${escapeHtml(c.child)}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      if (outgoingCalls.length > 0) {
+        html += `
+          <div class="mb-5">
+            <div class="text-xs font-semibold opacity-50 mb-2 uppercase tracking-wider">调用 (${outgoingCalls.length})</div>
+            <div class="space-y-1">
+              ${outgoingCalls.slice(0, 20).map(c => `
+                <div class="text-sm py-1 px-2 rounded" style="background:rgba(107,114,128,0.08);">
+                  ${escapeHtml(c.callee)}
+                </div>
+              `).join('')}
+              ${outgoingCalls.length > 20 ? `<div class="text-xs opacity-40">...还有 ${outgoingCalls.length - 20} 条</div>` : ''}
+            </div>
+          </div>
+        `;
+      }
+
+      if (incomingCalls.length > 0) {
+        html += `
+          <div class="mb-5">
+            <div class="text-xs font-semibold opacity-50 mb-2 uppercase tracking-wider">被调用 (${incomingCalls.length})</div>
+            <div class="space-y-1">
+              ${incomingCalls.slice(0, 20).map(c => `
+                <div class="text-sm py-1 px-2 rounded" style="background:rgba(60,221,221,0.08);">
+                  ${escapeHtml(c.caller)}
+                </div>
+              `).join('')}
+              ${incomingCalls.length > 20 ? `<div class="text-xs opacity-40">...还有 ${incomingCalls.length - 20} 条</div>` : ''}
+            </div>
+          </div>
+        `;
+      }
+
+      if (parentInherits.length > 0) {
+        html += `
+          <div class="mb-5">
+            <div class="text-xs font-semibold opacity-50 mb-2 uppercase tracking-wider">继承自</div>
+            <div class="space-y-1">
+              ${parentInherits.map(i => `
+                <div class="text-sm py-1 px-2 rounded" style="background:rgba(251,191,36,0.08);">
+                  ${escapeHtml(i.parent_class)}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      content.innerHTML = html || '<div class="text-sm opacity-40 text-center py-8">暂无详细信息</div>';
+    }
+
+    function closeDetailPanel() {
+      document.getElementById('detailPanel').classList.remove('open');
+    }
+
+    // 重置图谱视图
+    function resetGraphView() {
+      document.getElementById('graphSearch').value = '';
+      // 重置筛选
+      document.querySelectorAll('[data-filter]').forEach(cb => { cb.checked = true; });
+      document.getElementById('layoutSelect').value = 'force';
+      // 重建图谱
+      if (network) {
+        network.destroy();
+        network = null;
+      }
+      initGraph();
+    }
+
+    // 图谱缩放控制
+    function graphZoomIn() {
+      if (network) {
+        const scale = network.getScale();
+        network.moveTo({ scale: scale * 1.3, animation: { duration: 300 } });
+      }
+    }
+
+    function graphZoomOut() {
+      if (network) {
+        const scale = network.getScale();
+        network.moveTo({ scale: scale / 1.3, animation: { duration: 300 } });
+      }
+    }
+
+    function graphFitScreen() {
+      if (network) {
+        network.fit({ animation: { duration: 500, easingFunction: 'easeInOutQuad' } });
+      }
+    }
+
+    // 从总览页面跳转到图谱并高亮节点
+    function navigateToGraphNode(nodeName) {
+      switchPage('graph');
+      // 等待图谱创建完成后高亮
+      setTimeout(() => {
+        if (network) {
+          document.getElementById('graphSearch').value = nodeName;
+          searchAndHighlight(nodeName);
+        }
+      }, 500);
+    }
+
+    // ========================================
+    // 页面3：代码浏览器
+    // ========================================
+    function initExplorer() {
+      const files = dataCache.files || [];
+      if (!files.length) {
+        document.getElementById('fileTree').innerHTML = '<div class="text-sm opacity-40 text-center py-8">暂无文件数据</div>';
+        return;
+      }
+
+      flatFileList = files.map(f => f.path);
+
+      // 按目录分组
+      const dirTree = {};
+      files.forEach(f => {
+        const parts = f.path.split('/');
+        let current = dirTree;
+        parts.forEach((part, idx) => {
+          if (!current[part]) {
+            current[part] = idx === parts.length - 1 ? null : {};
+          }
+          if (current[part] !== null && idx < parts.length - 1) {
+            current = current[part];
+          }
+        });
+      });
+
+      const treeHtml = buildTreeHTML(dirTree, '');
+      document.getElementById('fileTree').innerHTML = treeHtml;
+    }
+
+    function buildTreeHTML(tree, prefix) {
+      let html = '';
+      const entries = Object.entries(tree).sort(([a, va], [b, vb]) => {
+        // 目录在前，文件在后
+        if (va === null && vb !== null) return 1;
+        if (va !== null && vb === null) return -1;
+        return a.localeCompare(b);
+      });
+
+      entries.forEach(([name, children]) => {
+        const fullPath = prefix ? `${prefix}/${name}` : name;
+        if (children === null) {
+          // 文件
+          html += `
+            <div class="file-tree-item" data-path="${escapeHtml(fullPath)}" onclick="selectFile('${escapeHtml(fullPath)}', this)">
+              <i data-lucide="file-text" class="w-3.5 h-3.5 opacity-50 flex-shrink-0"></i>
+              <span class="truncate">${escapeHtml(name)}</span>
+            </div>
+          `;
+        } else {
+          // 目录
+          html += `
+            <div class="file-tree-item" style="font-weight:600; opacity:0.7;" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'; this.querySelector('i').style.transform = this.nextElementSibling.style.display === 'none' ? '' : 'rotate(90deg)';">
+              <i data-lucide="chevron-right" class="w-3.5 h-3.5 flex-shrink-0 transition-transform"></i>
+              <i data-lucide="folder" class="w-3.5 h-3.5 opacity-50 flex-shrink-0"></i>
+              <span class="truncate">${escapeHtml(name)}</span>
+            </div>
+            <div style="padding-left: 16px; display: none;">
+              ${buildTreeHTML(children, fullPath)}
+            </div>
+          `;
+        }
+      });
+
+      return html;
+    }
+
+    async function selectFile(filePath, element) {
+      // 更新选中状态
+      document.querySelectorAll('.file-tree-item').forEach(el => el.classList.remove('active'));
+      if (element) element.classList.add('active');
+
+      // 更新当前文件路径
+      document.getElementById('currentFilePath').textContent = filePath;
+      currentFileIndex = flatFileList.indexOf(filePath);
+
+      // 加载文件内容
+      const preview = document.getElementById('codePreview');
+      preview.innerHTML = '<div class="flex items-center justify-center h-full"><div class="loading-spinner"></div></div>';
+
+      try {
+        const result = await apiGet(`/api/file/content?path=${encodeURIComponent(filePath)}`);
+        if (result && result.content !== undefined) {
+          renderCodeContent(result.content);
+        } else {
+          preview.innerHTML = '<div class="flex items-center justify-center h-full opacity-40 text-sm">无法获取文件内容</div>';
+        }
+      } catch (e) {
+        preview.innerHTML = `
+          <div class="flex items-center justify-center h-full opacity-40 text-sm flex-col gap-2">
+            <i data-lucide="alert-circle" class="w-8 h-8 opacity-30"></i>
+            <span>文件内容需要后端支持</span>
+            <span class="text-xs opacity-30">请确保后端提供了 /api/file/content 端点</span>
+          </div>
+        `;
+        // 重新初始化图标
+        if (window.lucide) lucide.createIcons();
+      }
+    }
+
+    function renderCodeContent(content) {
+      const preview = document.getElementById('codePreview');
+      const lines = content.split('\n');
+      let html = '';
+      lines.forEach((line, idx) => {
+        const lineNum = idx + 1;
+        html += `
+          <div class="code-line">
+            <span class="line-number">${lineNum}</span>
+            <span class="line-content">${escapeHtml(line)}</span>
+          </div>
+        `;
+      });
+      preview.innerHTML = html;
+    }
+
+    function prevFile() {
+      if (flatFileList.length === 0) return;
+      if (currentFileIndex <= 0) {
+        currentFileIndex = flatFileList.length;
+      }
+      currentFileIndex--;
+      const path = flatFileList[currentFileIndex];
+      // 查找对应的 DOM 元素并点击
+      const item = document.querySelector(`.file-tree-item[data-path="${CSS.escape(path)}"]`);
+      selectFile(path, item);
+    }
+
+    function nextFile() {
+      if (flatFileList.length === 0) return;
+      currentFileIndex++;
+      if (currentFileIndex >= flatFileList.length) {
+        currentFileIndex = 0;
+      }
+      const path = flatFileList[currentFileIndex];
+      const item = document.querySelector(`.file-tree-item[data-path="${CSS.escape(path)}"]`);
+      selectFile(path, item);
+    }
+
+    // ========================================
+    // 页面4：AI 查询
+    // ========================================
+    function fillQuestion(question) {
+      document.getElementById('aiQuestion').value = question;
+    }
+
+    async function testConnection() {
+      const apiKey = document.getElementById('apiKeyInput').value.trim();
+      if (!apiKey) {
+        showToast('请输入 API 密钥', 'error');
+        return;
+      }
+
+      try {
+        const result = await apiPost('/api/ai/query', {
+          question: 'test',
+          api_key: apiKey
+        });
+        if (result.success !== false) {
+          showToast('连接测试成功', 'success');
+        } else {
+          showToast('连接测试失败: ' + (result.error || '未知错误'), 'error');
+        }
+      } catch (e) {
+        showToast('连接测试失败: ' + e.message, 'error');
+      }
+    }
+
+    async function submitAIQuery() {
+      const question = document.getElementById('aiQuestion').value.trim();
+      const apiKey = document.getElementById('apiKeyInput').value.trim();
+
+      if (!question) {
+        showToast('请输入查询问题', 'error');
+        return;
+      }
+      if (!apiKey) {
+        showToast('请输入 API 密钥', 'error');
+        return;
+      }
+
+      // 显示加载状态
+      document.getElementById('aiLoading').style.display = 'flex';
+      document.getElementById('aiSqlSection').style.display = 'none';
+      document.getElementById('aiResultSection').style.display = 'none';
+      document.getElementById('aiErrorSection').style.display = 'none';
+      document.getElementById('aiEmptyState').style.display = 'none';
+
+      // 禁用提交按钮
+      const btn = document.getElementById('aiSubmitBtn');
+      btn.disabled = true;
+      btn.style.opacity = '0.6';
+
+      try {
+        const result = await apiPost('/api/ai/query', {
+          question: question,
+          api_key: apiKey
         });
 
-        function generateMockResult(query) {
-            if (query.includes('组件') && query.includes('哪些')) {
-                return `
-                    <div class="mb-4">
-                        <label class="text-xs text-slate-500">生成的 SQL</label>
-                        <div class="font-mono text-xs bg-slate-800 text-slate-200 p-3 rounded mt-1">
-SELECT name, file FROM classes WHERE is_component = 1;
-                        </div>
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-500">查询结果 (6 行)</label>
-                        <table class="w-full mt-2 text-sm">
-                            <thead class="bg-slate-50">
-                                <tr><th class="text-left p-2">name</th><th class="text-left p-2">file</th></tr>
-                            </thead>
-                            <tbody>
-                                <tr class="border-b"><td class="p-2 font-medium text-coral-600">UserCard</td><td class="p-2 text-slate-500">components/UserCard.ets</td></tr>
-                                <tr class="border-b"><td class="p-2 font-medium text-coral-600">Avatar</td><td class="p-2 text-slate-500">components/Avatar.ets</td></tr>
-                                <tr class="border-b"><td class="p-2 font-medium text-coral-600">Header</td><td class="p-2 text-slate-500">components/Header.ets</td></tr>
-                                <tr class="border-b"><td class="p-2 font-medium text-coral-600">Footer</td><td class="p-2 text-slate-500">components/Footer.ets</td></tr>
-                                <tr class="border-b"><td class="p-2 font-medium text-coral-600">Index</td><td class="p-2 text-slate-500">pages/Index.ets</td></tr>
-                                <tr class="border-b"><td class="p-2 font-medium text-coral-600">UserDetail</td><td class="p-2 text-slate-500">pages/UserDetail.ets</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-            } else if (query.includes('Index') && query.includes('子组件')) {
-                return `
-                    <div class="mb-4">
-                        <label class="text-xs text-slate-500">生成的 SQL</label>
-                        <div class="font-mono text-xs bg-slate-800 text-slate-200 p-3 rounded mt-1">
-SELECT child FROM components WHERE parent = 'Index';
-                        </div>
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-500">查询结果 (3 行)</label>
-                        <div class="space-y-2 mt-2">
-                            <div class="p-3 bg-slate-50 rounded flex items-center gap-3">
-                                <i data-lucide="box" class="w-4 h-4 text-coral-500"></i>
-                                <span class="font-medium">Header</span>
-                                <span class="text-xs text-slate-400">头部组件</span>
-                            </div>
-                            <div class="p-3 bg-slate-50 rounded flex items-center gap-3">
-                                <i data-lucide="box" class="w-4 h-4 text-coral-500"></i>
-                                <span class="font-medium">UserCard</span>
-                                <span class="text-xs text-slate-400">用户卡片组件</span>
-                            </div>
-                            <div class="p-3 bg-slate-50 rounded flex items-center gap-3">
-                                <i data-lucide="box" class="w-4 h-4 text-coral-500"></i>
-                                <span class="font-medium">Footer</span>
-                                <span class="text-xs text-slate-400">底部组件</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            } else {
-                return `
-                    <div class="mb-4">
-                        <label class="text-xs text-slate-500">生成的 SQL</label>
-                        <div class="font-mono text-xs bg-slate-800 text-slate-200 p-3 rounded mt-1">
-SELECT * FROM classes WHERE name LIKE '%UserService%';
-                        </div>
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-500">查询结果</label>
-                        <div class="p-4 bg-slate-50 rounded mt-2">
-                            <div class="flex items-center gap-3 mb-3">
-                                <i data-lucide="class" class="w-5 h-5 text-teal-500"></i>
-                                <span class="font-semibold">UserService</span>
-                                <span class="badge class">类</span>
-                            </div>
-                            <div class="text-sm text-slate-600 space-y-1">
-                                <div><span class="text-slate-400">文件:</span> utils/UserService.ets</div>
-                                <div><span class="text-slate-400">行号:</span> 第 6 行</div>
-                                <div><span class="text-slate-400">方法数:</span> 6 个</div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
+        document.getElementById('aiLoading').style.display = 'none';
+
+        if (result.success === false) {
+          // 显示错误
+          document.getElementById('aiErrorSection').style.display = 'block';
+          document.getElementById('aiErrorMsg').textContent = result.error || '查询失败';
+          showToast('查询失败: ' + (result.error || '未知错误'), 'error');
+          return;
         }
 
-        // 示例查询点击
-        document.querySelectorAll('.example-query').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.getElementById('query-input').value = btn.dataset.query;
-            });
-        });
+        // 显示 SQL
+        if (result.sql) {
+          document.getElementById('aiSqlSection').style.display = 'block';
+          document.getElementById('aiSqlContent').textContent = result.sql;
+        }
 
-        // 快捷查询
-        document.querySelectorAll('.quick-query-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-                document.querySelector('[data-tab="ai-query"]').classList.add('active');
-                document.querySelectorAll('.page-content').forEach(p => p.classList.add('hidden'));
-                document.getElementById('ai-query-page').classList.remove('hidden');
-                document.getElementById('query-input').value = btn.dataset.query;
-            });
-        });
+        // 显示结果表格
+        if (result.columns && result.results) {
+          document.getElementById('aiResultSection').style.display = 'block';
+          document.getElementById('aiRowCount').textContent = `共 ${result.row_count || result.results.length} 条记录`;
 
-        // 初始化
-        document.addEventListener('DOMContentLoaded', () => {
-            initCharts();
-            initComponentList();
-            initFileTree();
-            loadCodeFile('test_arkts_project/pages/Index.ets');
-        });
-    </script>
+          // 表头
+          const thead = document.getElementById('aiResultHead');
+          thead.innerHTML = '<tr>' + result.columns.map(col => `<th>${escapeHtml(col)}</th>`).join('') + '</tr>';
+
+          // 表体
+          const tbody = document.getElementById('aiResultBody');
+          tbody.innerHTML = result.results.map(row => {
+            const cells = result.columns.map(col => {
+              const val = row[col] !== undefined && row[col] !== null ? row[col] : '-';
+              return `<td title="${escapeHtml(String(val))}">${escapeHtml(String(val))}</td>`;
+            });
+            return '<tr>' + cells.join('') + '</tr>';
+          }).join('');
+        }
+
+        showToast('查询完成', 'success');
+      } catch (e) {
+        document.getElementById('aiLoading').style.display = 'none';
+        document.getElementById('aiErrorSection').style.display = 'block';
+        document.getElementById('aiErrorMsg').textContent = e.message;
+        showToast('查询失败: ' + e.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+      }
+    }
+
+    // ========================================
+    // 工具函数
+    // ========================================
+    function escapeHtml(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // ========================================
+    // 页面初始化
+    // ========================================
+    async function init() {
+      // 显示加载状态
+      showToast('正在加载数据...', 'info');
+
+      const success = await loadAllData();
+
+      if (success) {
+        // 初始化总览页面
+        initOverview();
+        showToast('数据加载完成', 'success');
+      } else {
+        showToast('部分数据加载失败，请检查后端服务', 'error');
+        // 仍然尝试初始化页面
+        initOverview();
+      }
+
+      // 初始化 Lucide 图标
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+    }
+
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', init);
+
+    // 键盘快捷键
+    document.addEventListener('keydown', (e) => {
+      // Escape 关闭详情面板
+      if (e.key === 'Escape') {
+        closeDetailPanel();
+        closeCSVDialog();
+      }
+      // Ctrl+Enter 提交 AI 查询
+      if (e.ctrlKey && e.key === 'Enter') {
+        const aiPage = document.getElementById('page-aiquery');
+        if (aiPage && aiPage.classList.contains('active')) {
+          submitAIQuery();
+        }
+      }
+    });
+  </script>
 </body>
 </html>

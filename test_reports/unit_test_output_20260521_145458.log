@@ -1,0 +1,153 @@
+test_clear_tables (__main__.TestDatabaseManager)
+测试清空表 ... ok
+test_connection (__main__.TestDatabaseManager)
+测试数据库连接 ... ok
+test_create_tables (__main__.TestDatabaseManager)
+测试创建表 ... ok
+test_execute_query (__main__.TestDatabaseManager)
+测试执行查询 ... ok
+test_get_schema_description (__main__.TestDatabaseManager)
+测试获取Schema描述 ... ok
+test_get_statistics (__main__.TestDatabaseManager)
+测试获取统计信息 ... ok
+test_insert_call (__main__.TestDatabaseManager)
+测试插入调用关系 ... ok
+test_insert_class (__main__.TestDatabaseManager)
+测试插入类 ... ERROR
+test_insert_component_relation (__main__.TestDatabaseManager)
+测试插入组件关系 ... ok
+test_insert_file (__main__.TestDatabaseManager)
+测试插入文件 ... ok
+test_insert_inherit (__main__.TestDatabaseManager)
+测试插入继承关系 ... ok
+test_insert_method (__main__.TestDatabaseManager)
+测试插入方法 ... ERROR
+test_find_matching_brace (__main__.TestArkTSParser)
+测试查找匹配的大括号 ... ok
+test_parse_arrow_functions (__main__.TestArkTSParser)
+测试解析箭头函数 ... FAIL
+test_parse_call_relations (__main__.TestArkTSParser)
+测试解析调用关系 ... ok
+test_parse_complex_decorators (__main__.TestArkTSParser)
+测试解析复杂装饰器 ... ok
+test_parse_empty_file (__main__.TestArkTSParser)
+测试解析空文件 ... ok
+test_parse_file_with_only_comments (__main__.TestArkTSParser)
+测试解析只有注释的文件 ... ok
+test_parse_inheritance (__main__.TestArkTSParser)
+测试解析继承关系 ... ok
+test_parse_private_methods (__main__.TestArkTSParser)
+测试解析私有方法 ... ok
+test_parse_simple_component (__main__.TestArkTSParser)
+测试解析简单组件 ... ok
+test_parse_static_methods (__main__.TestArkTSParser)
+测试解析静态方法 ... ok
+test_parse_unicode (__main__.TestArkTSParser)
+测试解析Unicode代码 ... ok
+test_skip_identifiers (__main__.TestArkTSParser)
+测试跳过内置标识符 ... FAIL
+test_strip_comments_and_strings (__main__.TestArkTSParser)
+测试移除注释和字符串 ... ok
+test_deeply_nested_calls (__main__.TestEdgeCases)
+测试深层嵌套调用 ... ok
+test_malformed_code (__main__.TestEdgeCases)
+测试格式错误的代码 ... ok
+test_multiple_classes_in_file (__main__.TestEdgeCases)
+测试单个文件中的多个类 ... ok
+test_special_characters_in_strings (__main__.TestEdgeCases)
+测试字符串中的特殊字符 ... ok
+test_very_long_file (__main__.TestEdgeCases)
+测试超长文件 ... ok
+test_full_pipeline (__main__.TestIntegration)
+测试完整流程 ... ok
+
+======================================================================
+ERROR: test_insert_class (__main__.TestDatabaseManager)
+测试插入类
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/arkts-knowledge-graph-v4/test_unit_comprehensive.py", line 313, in test_insert_class
+    self.db.insert_class(class_info)
+  File "/workspace/arkts-knowledge-graph-v4/arkts_knowledge_graph.py", line 217, in insert_class
+    cursor.execute(
+sqlite3.IntegrityError: FOREIGN KEY constraint failed
+
+======================================================================
+ERROR: test_insert_method (__main__.TestDatabaseManager)
+测试插入方法
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/arkts-knowledge-graph-v4/test_unit_comprehensive.py", line 333, in test_insert_method
+    self.db.insert_method(method_info)
+  File "/workspace/arkts-knowledge-graph-v4/arkts_knowledge_graph.py", line 229, in insert_method
+    cursor.execute(
+sqlite3.IntegrityError: FOREIGN KEY constraint failed
+
+======================================================================
+FAIL: test_parse_arrow_functions (__main__.TestArkTSParser)
+测试解析箭头函数
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/arkts-knowledge-graph-v4/test_unit_comprehensive.py", line 557, in test_parse_arrow_functions
+    self.assertIn('callback', method_names)
+AssertionError: 'callback' not found in ['process', 'save', 'build', 'handler']
+
+======================================================================
+FAIL: test_skip_identifiers (__main__.TestArkTSParser)
+测试跳过内置标识符
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/arkts-knowledge-graph-v4/test_unit_comprehensive.py", line 682, in test_skip_identifiers
+    self.assertNotIn('log', call_callees)
+AssertionError: 'log' unexpectedly found in ['log', 'abs', 'resolve']
+
+----------------------------------------------------------------------
+Ran 31 tests in 0.527s
+
+FAILED (failures=2, errors=2)
+找到 1 个ArkTS文件
+找到 1 个ArkTS文件
+找到 1 个ArkTS文件
+找到 1 个ArkTS文件
+找到 1 个ArkTS文件
+找到 1 个ArkTS文件
+找到 1 个ArkTS文件
+找到 1 个ArkTS文件
+找到 1 个ArkTS文件
+找到 1 个ArkTS文件
+找到 1 个ArkTS文件
+找到 1 个ArkTS文件
+找到 1 个ArkTS文件
+找到 1 个ArkTS文件
+找到 1 个ArkTS文件
+找到 1 个ArkTS文件
+开始构建知识图谱: /tmp/tmp8sw13zbn
+正在解析项目...
+找到 2 个ArkTS文件
+正在存储到数据库...
+
+构建完成！统计信息:
+  文件数: 2
+  类数: 2
+  组件数: 2
+  入口组件数: 1
+  方法数: 2
+  调用关系数: 1
+  组件嵌套关系数: 1
+  继承关系数: 0
+
+======================================================================
+测试总结
+======================================================================
+运行测试数: 31
+通过: 27
+失败: 2
+错误: 2
+
+失败的测试:
+  - test_parse_arrow_functions (__main__.TestArkTSParser)
+  - test_skip_identifiers (__main__.TestArkTSParser)
+
+错误的测试:
+  - test_insert_class (__main__.TestDatabaseManager)
+  - test_insert_method (__main__.TestDatabaseManager)
