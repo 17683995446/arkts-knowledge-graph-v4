@@ -928,7 +928,10 @@ class ArkTSParser:
             implements_str = match.group(5)
             if implements_str:
                 for iface_name in re.findall(r'\b(\w+)\b', implements_str):
-                    if iface_name not in self.JS_KEYWORDS and iface_name != name:
+                    # 过滤：关键字、自身名、单字母（泛型参数如T/U/V）
+                    if (iface_name not in self.JS_KEYWORDS 
+                        and iface_name != name 
+                        and len(iface_name) > 1):
                         self.inherits.append(InheritRelation(
                             child_class=name, parent_class=iface_name,
                             file=file_path, line_number=line_number
@@ -971,7 +974,10 @@ class ArkTSParser:
                 implements_str = match.group(6)
                 if implements_str:
                     for iface_name in re.findall(r'\b(\w+)\b', implements_str):
-                        if iface_name not in self.JS_KEYWORDS and iface_name != name:
+                        # 过滤：关键字、自身名、单字母（泛型参数如T/U/V）
+                        if (iface_name not in self.JS_KEYWORDS 
+                            and iface_name != name 
+                            and len(iface_name) > 1):
                             self.inherits.append(InheritRelation(
                                 child_class=name, parent_class=iface_name,
                                 file=file_path, line_number=line_number
