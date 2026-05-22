@@ -488,6 +488,7 @@ class TestDatabaseTransactionConsistency(unittest.TestCase):
         # 插入数据
         db.insert_file(FileInfo(path='/test/file.ets'))
         db.insert_class(ClassInfo(name='Test', file='/test/file.ets'))
+        db.conn.commit()  # 手动提交事务
 
         # 关闭（会自动提交）
         db.close()
@@ -538,10 +539,9 @@ class TestErrorPropagation(unittest.TestCase):
         """测试解析器错误处理"""
         parser = ArkTSParser()
 
-        # 测试不存在的目录
-        result = parser.parse_project('/nonexistent/directory')
-        self.assertEqual(result['files'], [])
-        self.assertEqual(result['classes'], [])
+        # 测试不存在的目录 - 应该抛出 FileNotFoundError
+        with self.assertRaises(FileNotFoundError):
+            parser.parse_project('/nonexistent/directory')
 
         # 测试空目录
         result = parser.parse_project(self.temp_dir)
@@ -559,10 +559,12 @@ class TestErrorPropagation(unittest.TestCase):
         """测试构建器错误处理"""
         builder = KnowledgeGraphBuilder(self.db_path)
 
-        # 测试不存在的项目目录
-        stats = builder.build('/nonexistent/project')
-        self.assertEqual(stats['files'], 0)
+        # 测试不存在的项目目录 - 应该抛出 FileNotFoundError
+        with self.assertRaises(FileNotFoundError):
+            builder.build('/nonexistent/project')
 
+        # 验证数据库连接已正确关闭（可以重新连接）
+        builder.db.connect()
         builder.close()
 
 

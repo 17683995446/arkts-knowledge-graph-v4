@@ -1,0 +1,29 @@
+
+[0;34m========================================[0m
+[0;34m1. 项目文件统计[0m
+[0;34m========================================[0m
+
+[0;34m[INFO][0m 统计 test_ultra_complex_project 目录结构...
+[0;34m[INFO][0m 组件文件数: 45
+[0;34m[INFO][0m 页面文件数: 30
+[0;34m[INFO][0m 服务文件数: 20
+[0;34m[INFO][0m 模型文件数: 15
+[0;34m[INFO][0m 工具文件数: 15
+[0;34m[INFO][0m 总计: 125 个文件
+[0;32m[SUCCESS][0m 项目文件统计完成，共 125 个文件
+
+[0;34m========================================[0m
+[0;34m2. 解析超大规模项目[0m
+[0;34m========================================[0m
+
+[0;34m[INFO][0m 使用带日志的解析器解析项目...
+[0;34m[INFO][0m 解析器: arkts_knowledge_graph_logged.py
+[0;34m[INFO][0m 项目路径: /workspace/arkts-knowledge-graph-v4/test_ultra_complex_project
+[0;34m[INFO][0m 数据库: /workspace/arkts-knowledge-graph-v4/test_ultra_complex.db
+[0;34m[INFO][0m 日志文件: /workspace/arkts-knowledge-graph-v4/test_reports/phase1_test_20260522_005128.log
+[0;34m[INFO][0m 开始解析（详细日志输出到控制台和日志文件）...
+  File "/workspace/arkts-knowledge-graph-v4/arkts_knowledge_graph_logged.py", line 1851
+    log_if('obj_name and re.match(r'^\\d', obj_name)',
+                                      ^
+SyntaxError: unexpected character after line continuation character
+[0;31m[ERROR][0m 解析失败，退出码: 1

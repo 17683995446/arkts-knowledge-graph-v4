@@ -8,6 +8,7 @@ import argparse
 import csv
 import io
 import os
+import re
 import sqlite3
 import sys
 
@@ -38,6 +39,37 @@ def index():
 # ============================================================
 # 数据库连接工具函数
 # ============================================================
+
+def validate_sql(sql: str) -> tuple:
+    """验证SQL安全性，返回 (is_safe, error_message)"""
+    sql_clean = sql.strip().rstrip(';').strip()
+
+    # 检查是否以安全关键字开头
+    safe_prefixes = ('SELECT', 'WITH', 'EXPLAIN')
+    if not any(sql_clean.upper().startswith(p) for p in safe_prefixes):
+        return False, f"只允许 SELECT/WITH/EXPLAIN 查询，当前以 {sql_clean[:20]} 开头"
+
+    # 检查危险关键字
+    dangerous_keywords = [
+        'DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'CREATE',
+        'TRUNCATE', 'REPLACE', 'GRANT', 'REVOKE', 'ATTACH', 'DETACH'
+    ]
+    sql_upper = sql_clean.upper()
+    for kw in dangerous_keywords:
+        # 使用单词边界检查，避免误判（如 SELECT中的DELETE列名）
+        if re.search(r'\b' + kw + r'\b', sql_upper):
+            return False, f"SQL 中包含危险关键字: {kw}"
+
+    # 检查分号（防止多语句注入）
+    if ';' in sql_clean:
+        return False, "SQL 中不允许分号"
+
+    # 检查注释注入
+    if '--' in sql_clean or '/*' in sql_clean:
+        return False, "SQL 中不允许注释"
+
+    return True, None
+
 
 def get_db():
     """获取数据库连接，并启用字典模式（返回字典而非元组）"""
@@ -354,6 +386,11 @@ SQL语句："""
     # 去除末尾多余的分号（sqlite3 不需要）
     sql = sql.rstrip(";").strip()
 
+    # SQL 安全检查
+    is_safe, error_msg = validate_sql(sql)
+    if not is_safe:
+        return jsonify({'success': False, 'error': f'SQL安全检查失败: {error_msg}', 'sql': sql})
+
     # 执行生成的 SQL
     try:
         conn = get_db()
@@ -424,6 +461,7 @@ if __name__ == "__main__":
         default=5000,
         help="服务端口号（默认: 5000）",
     )
+    parser.add_argument('--debug', action='store_true', default=False, help='启用调试模式')
     args = parser.parse_args()
 
     # 设置全局数据库路径
@@ -431,4 +469,4 @@ if __name__ == "__main__":
 
     # 启动服务
     print(f"知识图谱可视化服务已启动: http://localhost:{args.port}")
-    app.run(host="0.0.0.0", port=args.port, debug=True)
+    app.run(host="0.0.0.0", port=args.port, debug=args.debug)
