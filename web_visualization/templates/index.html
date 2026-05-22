@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArkTS 知识图谱可视化系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.3.4/dist/vue.global.prod.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        header h1 {
+            font-size: 24px;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header-stats {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+        }
+        
+        .sidebar {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            height: calc(100vh - 140px);
+            overflow-y: auto;
+        }
+        
+        .sidebar h2 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #00d4ff;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 10px;
+        }
+        
+        .build-form {
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 13px;
+            color: #aaa;
+        }
+        
+        .form-group input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 14px;
+        }
+        
+        .form-group input[type="text"]:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            color: #fff;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.3);
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            margin-top: 10px;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        
+        .tab {
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+        }
+        
+        .tab:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .list-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .list-item {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .list-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .list-item.selected {
+            background: rgba(0, 212, 255, 0.2);
+            border: 1px solid #00d4ff;
+        }
+        
+        .item-name {
+            font-weight: bold;
+            color: #fff;
+        }
+        
+        .item-badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        
+        .badge-component {
+            background: #7b2cbf;
+        }
+        
+        .badge-entry {
+            background: #e63946;
+        }
+        
+        .badge-class {
+            background: #2a9d8f;
+        }
+        
+        .content-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .graph-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            height: 500px;
+        }
+        
+        #graph-chart {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .detail-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .detail-title {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .detail-badges {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .detail-section {
+            margin-bottom: 20px;
+        }
+        
+        .detail-section h3 {
+            font-size: 14px;
+            color: #00d4ff;
+            margin-bottom: 10px;
+        }
+        
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        
+        .detail-item {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        
+        .detail-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            color: #888;
+        }
+        
+        .error-message {
+            background: rgba(230, 57, 70, 0.2);
+            border: 1px solid #e63946;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            color: #e63946;
+        }
+        
+        .success-message {
+            background: rgba(42, 157, 143, 0.2);
+            border: 1px solid #2a9d8f;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            color: #2a9d8f;
+        }
+        
+        .search-box {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        
+        .search-box:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+        
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    {% raw %}
+    <div id="app" class="container">
+        <header>
+            <h1>ArkTS 知识图谱可视化系统</h1>
+            <div class="header-stats">
+                <div class="stat-item">
+                    <div class="stat-value">{{ stats.files || 0 }}</div>
+                    <div class="stat-label">文件</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">{{ stats.classes || 0 }}</div>
+                    <div class="stat-label">类</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">{{ stats.components || 0 }}</div>
+                    <div class="stat-label">组件</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">{{ stats.methods || 0 }}</div>
+                    <div class="stat-label">方法</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">{{ stats.call_relations || 0 }}</div>
+                    <div class="stat-label">调用</div>
+                </div>
+            </div>
+        </header>
+        
+        <div class="main-content">
+            <aside class="sidebar">
+                <h2>项目管理</h2>
+                
+                <div class="build-form">
+                    <div class="form-group">
+                        <label>项目路径</label>
+                        <input type="text" v-model="projectPath" placeholder="/path/to/project">
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="useFilter" v-model="useFilter">
+                        <label for="useFilter">过滤第三方库</label>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="incremental" v-model="incremental">
+                        <label for="incremental">增量解析</label>
+                    </div>
+                    
+                    <button class="btn btn-primary" @click="buildProject" :disabled="building">
+                        {{ building ? '解析中...' : '解析项目' }}
+                    </button>
+                    
+                    <button class="btn btn-secondary" @click="loadDemo">加载示例数据</button>
+                </div>
+                
+                <div v-if="message" :class="messageType === 'error' ? 'error-message' : 'success-message'">
+                    {{ message }}
+                </div>
+                
+                <h2>实体浏览</h2>
+                
+                <input type="text" class="search-box" v-model="searchQuery" placeholder="搜索...">
+                
+                <div class="tabs">
+                    <div class="tab" :class="{ active: activeTab === 'classes' }" @click="activeTab = 'classes'">类</div>
+                    <div class="tab" :class="{ active: activeTab === 'files' }" @click="activeTab = 'files'">文件</div>
+                    <div class="tab" :class="{ active: activeTab === 'decorators' }" @click="activeTab = 'decorators'">装饰器</div>
+                </div>
+                
+                <div class="list-container">
+                    <div v-if="activeTab === 'classes'">
+                        <div v-for="cls in filteredClasses" :key="cls.name" 
+                             class="list-item" 
+                             :class="{ selected: selectedClass === cls.name }"
+                             @click="selectClass(cls.name)">
+                            <span class="item-name">{{ cls.name }}</span>
+                            <span v-if="cls.is_entry" class="item-badge badge-entry">@Entry</span>
+                            <span v-else-if="cls.is_component" class="item-badge badge-component">@Component</span>
+                            <span v-else class="item-badge badge-class">class</span>
+                        </div>
+                    </div>
+                    
+                    <div v-if="activeTab === 'files'">
+                        <div v-for="file in filteredFiles" :key="file.path" class="list-item">
+                            <span class="item-name">{{ getFileName(file.path) }}</span>
+                            <span class="item-badge badge-class">{{ file.line_count }}行</span>
+                        </div>
+                    </div>
+                    
+                    <div v-if="activeTab === 'decorators'">
+                        <div v-for="dec in filteredDecorators" :key="dec.name + dec.line_number" class="list-item">
+                            <span class="item-name">@{{ dec.name }}</span>
+                            <span class="item-badge badge-component">{{ dec.dec_type }}</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+            
+            <main class="content-area">
+                <div class="graph-container">
+                    <div id="graph-chart"></div>
+                </div>
+                
+                <div class="detail-panel" v-if="classDetail">
+                    <div class="detail-header">
+                        <div>
+                            <div class="detail-title">{{ classDetail.class.name }}</div>
+                            <div style="font-size: 12px; color: #888; margin-top: 5px;">
+                                {{ classDetail.class.file }}:{{ classDetail.class.line_number }}
+                            </div>
+                        </div>
+                        <div class="detail-badges">
+                            <span v-if="classDetail.class.is_entry" class="item-badge badge-entry">@Entry</span>
+                            <span v-if="classDetail.class.is_component" class="item-badge badge-component">@Component</span>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section" v-if="classDetail.methods.length">
+                        <h3>方法 ({{ classDetail.methods.length }})</h3>
+                        <div class="detail-grid">
+                            <div v-for="m in classDetail.methods" :key="m.name" class="detail-item">
+                                <span>{{ m.name }}</span>
+                                <span v-if="m.is_private" style="color: #e63946; font-size: 11px;">private</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section" v-if="classDetail.calls_out.length">
+                        <h3>调用 ({{ classDetail.calls_out.length }})</h3>
+                        <div class="detail-grid">
+                            <div v-for="c in classDetail.calls_out" :key="c.callee + c.line_number" 
+                                 class="detail-item" @click="selectClass(c.callee_class)">
+                                {{ c.callee_class }}.{{ c.callee }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section" v-if="classDetail.calls_in.length">
+                        <h3>被调用 ({{ classDetail.calls_in.length }})</h3>
+                        <div class="detail-grid">
+                            <div v-for="c in classDetail.calls_in" :key="c.caller + c.line_number"
+                                 class="detail-item" @click="selectClass(c.caller_class)">
+                                {{ c.caller_class }}.{{ c.caller }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section" v-if="classDetail.component_children.length">
+                        <h3>子组件 ({{ classDetail.component_children.length }})</h3>
+                        <div class="detail-grid">
+                            <div v-for="c in classDetail.component_children" :key="c"
+                                 class="detail-item" @click="selectClass(c)">{{ c }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section" v-if="classDetail.inherits.length">
+                        <h3>继承 ({{ classDetail.inherits.length }})</h3>
+                        <div class="detail-grid">
+                            <div v-for="c in classDetail.inherits" :key="c"
+                                 class="detail-item" @click="selectClass(c)">{{ c }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section" v-if="classDetail.inherited_by.length">
+                        <h3>被继承 ({{ classDetail.inherited_by.length }})</h3>
+                        <div class="detail-grid">
+                            <div v-for="c in classDetail.inherited_by" :key="c"
+                                 class="detail-item" @click="selectClass(c)">{{ c }}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="detail-panel" v-else>
+                    <div class="loading">
+                        <p>选择一个类查看详细信息，或解析项目开始</p>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <script>
+        const { createApp, ref, computed, onMounted, watch } = Vue;
+        
+        createApp({
+            setup() {
+                const stats = ref({});
+                const classes = ref([]);
+                const files = ref([]);
+                const decorators = ref([]);
+                const graphData = ref({ nodes: [], links: [] });
+                const classDetail = ref(null);
+                const selectedClass = ref(null);
+                
+                const projectPath = ref('/workspace/arkts-knowledge-graph-v4/test_arkts_project');
+                const useFilter = ref(false);
+                const incremental = ref(false);
+                const building = ref(false);
+                const message = ref('');
+                const messageType = ref('success');
+                const searchQuery = ref('');
+                const activeTab = ref('classes');
+                
+                let chart = null;
+                
+                const filteredClasses = computed(() => {
+                    if (!searchQuery.value) return classes.value;
+                    const q = searchQuery.value.toLowerCase();
+                    return classes.value.filter(c => c.name.toLowerCase().includes(q));
+                });
+                
+                const filteredFiles = computed(() => {
+                    if (!searchQuery.value) return files.value;
+                    const q = searchQuery.value.toLowerCase();
+                    return files.value.filter(f => f.path.toLowerCase().includes(q));
+                });
+                
+                const filteredDecorators = computed(() => {
+                    if (!searchQuery.value) return decorators.value;
+                    const q = searchQuery.value.toLowerCase();
+                    return decorators.value.filter(d => d.name.toLowerCase().includes(q));
+                });
+                
+                function getFileName(path) {
+                    return path.split('/').pop();
+                }
+                
+                async function fetchStats() {
+                    try {
+                        const res = await fetch('/api/stats');
+                        const data = await res.json();
+                        if (!data.error) stats.value = data;
+                    } catch (e) {}
+                }
+                
+                async function fetchClasses() {
+                    try {
+                        const res = await fetch('/api/classes');
+                        const data = await res.json();
+                        if (!data.error) classes.value = data;
+                    } catch (e) {}
+                }
+                
+                async function fetchFiles() {
+                    try {
+                        const res = await fetch('/api/files');
+                        const data = await res.json();
+                        if (!data.error) files.value = data;
+                    } catch (e) {}
+                }
+                
+                async function fetchDecorators() {
+                    try {
+                        const res = await fetch('/api/decorators');
+                        const data = await res.json();
+                        if (!data.error) decorators.value = data;
+                    } catch (e) {}
+                }
+                
+                async function fetchGraph() {
+                    try {
+                        const res = await fetch('/api/graph');
+                        const data = await res.json();
+                        if (!data.error) {
+                            graphData.value = data;
+                            renderGraph();
+                        }
+                    } catch (e) {}
+                }
+                
+                async function selectClass(name) {
+                    selectedClass.value = name;
+                    try {
+                        const res = await fetch(`/api/class/${encodeURIComponent(name)}`);
+                        const data = await res.json();
+                        if (!data.error) classDetail.value = data;
+                    } catch (e) {}
+                }
+                
+                async function buildProject() {
+                    building.value = true;
+                    message.value = '';
+                    
+                    try {
+                        const res = await fetch('/api/build', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                project_path: projectPath.value,
+                                filter: useFilter.value,
+                                incremental: incremental.value
+                            })
+                        });
+                        const data = await res.json();
+                        
+                        if (data.error) {
+                            message.value = data.error;
+                            messageType.value = 'error';
+                        } else {
+                            message.value = `解析完成！文件: ${data.stats.files}, 类: ${data.stats.classes}, 方法: ${data.stats.methods}`;
+                            messageType.value = 'success';
+                            await refreshAll();
+                        }
+                    } catch (e) {
+                        message.value = '请求失败: ' + e.message;
+                        messageType.value = 'error';
+                    }
+                    
+                    building.value = false;
+                }
+                
+                async function loadDemo() {
+                    projectPath.value = '/workspace/arkts-knowledge-graph-v4/test_arkts_project';
+                    await buildProject();
+                }
+                
+                async function refreshAll() {
+                    await Promise.all([
+                        fetchStats(),
+                        fetchClasses(),
+                        fetchFiles(),
+                        fetchDecorators(),
+                        fetchGraph()
+                    ]);
+                }
+                
+                function renderGraph() {
+                    if (!chart) {
+                        chart = echarts.init(document.getElementById('graph-chart'));
+                    }
+                    
+                    const nodes = graphData.value.nodes.map(n => ({
+                        id: n.id,
+                        name: n.name,
+                        symbolSize: n.symbolSize,
+                        category: n.category === 'component' ? 0 : 1,
+                        itemStyle: {
+                            color: n.is_entry ? '#e63946' : (n.category === 'component' ? '#7b2cbf' : '#2a9d8f')
+                        },
+                        label: {
+                            show: true,
+                            fontSize: 12
+                        }
+                    }));
+                    
+                    const links = graphData.value.links.map(l => ({
+                        source: l.source,
+                        target: l.target,
+                        value: l.value,
+                        lineStyle: {
+                            color: l.type === 'component' ? '#7b2cbf' : 
+                                   (l.type === 'inherit' ? '#2a9d8f' : '#00d4ff'),
+                            width: l.type === 'call' ? 1 : 2,
+                            curveness: 0.2
+                        }
+                    }));
+                    
+                    const option = {
+                        backgroundColor: 'transparent',
+                        tooltip: {
+                            trigger: 'item',
+                            formatter: (params) => {
+                                if (params.dataType === 'node') {
+                                    return params.data.name;
+                                } else {
+                                    return `${params.data.source} → ${params.data.target}<br/>${params.data.value}`;
+                                }
+                            }
+                        },
+                        legend: {
+                            data: ['组件', '类'],
+                            textStyle: { color: '#aaa' },
+                            top: 10
+                        },
+                        series: [{
+                            type: 'graph',
+                            layout: 'force',
+                            data: nodes,
+                            links: links,
+                            categories: [
+                                { name: '组件' },
+                                { name: '类' }
+                            ],
+                            roam: true,
+                            draggable: true,
+                            force: {
+                                repulsion: 300,
+                                edgeLength: 100,
+                                gravity: 0.1
+                            },
+                            emphasis: {
+                                focus: 'adjacency',
+                                lineStyle: { width: 4 }
+                            },
+                            label: {
+                                show: true,
+                                position: 'right',
+                                formatter: '{b}'
+                            },
+                            lineStyle: {
+                                opacity: 0.6
+                            }
+                        }]
+                    };
+                    
+                    chart.setOption(option);
+                }
+                
+                onMounted(() => {
+                    refreshAll();
+                    window.addEventListener('resize', () => {
+                        if (chart) chart.resize();
+                    });
+                });
+                
+                return {
+                    stats, classes, files, decorators,
+                    graphData, classDetail, selectedClass,
+                    projectPath, useFilter, incremental, building,
+                    message, messageType, searchQuery, activeTab,
+                    filteredClasses, filteredFiles, filteredDecorators,
+                    getFileName, selectClass, buildProject, loadDemo
+                };
+            }
+        }).mount('#app');
+    </script>
+    {% endraw %}
+</body>
+</html>

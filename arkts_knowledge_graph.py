@@ -402,8 +402,12 @@ class DatabaseManager:
     # 只允许执行的SQL关键字（安全白名单）
     _ALLOWED_SQL_STARTS = ('SELECT', 'WITH', 'EXPLAIN')
 
-    def execute_query(self, sql: str) -> List[Tuple]:
-        """执行SQL查询（带安全过滤）"""
+    def execute_query(self, sql: str) -> Tuple[List[Tuple], List[str]]:
+        """执行SQL查询（带安全过滤）
+        
+        Returns:
+            (rows, columns): 数据行列表和列名列表
+        """
         sql_upper = sql.strip().upper()
         if not any(sql_upper.startswith(kw) for kw in self._ALLOWED_SQL_STARTS):
             raise ValueError(f"只允许执行查询语句(SELECT/WITH/EXPLAIN)，拒绝: {sql[:50]}")
@@ -422,7 +426,9 @@ class DatabaseManager:
             raise ValueError(f"查询中包含注释符号，可能存在注入: {sql[:50]}")
         cursor = self.conn.cursor()
         cursor.execute(sql)
-        return cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description] if cursor.description else []
+        rows = cursor.fetchall()
+        return rows, columns
     
     def get_statistics(self) -> Dict:
         """获取数据库统计信息"""
@@ -854,7 +860,8 @@ class ArkTSParser:
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
-        except (OSError, IOError, UnicodeDecodeError):
+        except (OSError, IOError, UnicodeDecodeError) as e:
+            _logger.warning(f"[SCAN] 无法读取文件 {file_path}: {type(e).__name__}")
             return
 
         self.files.append(FileInfo(path=file_path))
@@ -882,7 +889,8 @@ class ArkTSParser:
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
-        except (OSError, IOError, UnicodeDecodeError):
+        except (OSError, IOError, UnicodeDecodeError) as e:
+            _logger.warning(f"[PARSE] 无法读取文件 {file_path}: {type(e).__name__}")
             return
 
         stripped = self._strip_comments_and_strings(content)
@@ -1374,7 +1382,8 @@ class ArkTSParser:
             try:
                 with open(cls.file, 'r', encoding='utf-8') as f:
                     content = f.read()
-            except (OSError, IOError, UnicodeDecodeError):
+            except (OSError, IOError, UnicodeDecodeError) as e:
+                _logger.warning(f"[MEMBER_TYPE] 无法读取文件 {cls.file}: {type(e).__name__}")
                 continue
             
             stripped = self._strip_comments_and_strings(content)
@@ -1502,7 +1511,8 @@ class ArkTSParser:
             try:
                 with open(fp, 'r', encoding='utf-8') as f:
                     content = f.read()
-            except Exception:
+            except (OSError, IOError, UnicodeDecodeError) as e:
+                _logger.warning(f"[EXT_ENTITY] 无法读取文件 {fp}: {type(e).__name__}")
                 continue
 
             stripped = self._strip_comments_and_strings(content)
@@ -1528,7 +1538,8 @@ class ArkTSParser:
             try:
                 with open(cls.file, 'r', encoding='utf-8') as f:
                     content = f.read()
-            except Exception:
+            except (OSError, IOError, UnicodeDecodeError) as e:
+                _logger.warning(f"[DECORATOR] 无法读取文件 {cls.file}: {type(e).__name__}")
                 continue
 
             stripped = self._strip_comments_and_strings(content)
@@ -1665,13 +1676,7 @@ SQL语句："""
         
         # 执行查询
         try:
-            results = self.db.execute_query(sql)
-            columns = []
-            
-            # 获取列名
-            cursor = self.db.conn.cursor()
-            if cursor.description:
-                columns = [desc[0] for desc in cursor.description]
+            results, columns = self.db.execute_query(sql)
             
             return {
                 'question': question,
@@ -1752,6 +1757,7 @@ class KnowledgeGraphBuilder:
         files_to_parse = None
         deleted_files = []
         if incremental:
+            inc = None
             try:
                 from incremental_parser import IncrementalParser
                 inc = IncrementalParser(self.db.db_path)
@@ -1765,9 +1771,11 @@ class KnowledgeGraphBuilder:
                     files_to_parse = [Path(f) for f in (added + modified)]
                     deleted_files = deleted
 
-                inc.close()
             except ImportError:
                 print("警告: incremental_parser.py 未找到，执行全量解析")
+            finally:
+                if inc:
+                    inc.close()
 
         # 如果增量检测发现无变更，跳过解析
         if incremental and files_to_parse is not None and len(files_to_parse) == 0 and len(deleted_files) == 0:
@@ -1827,8 +1835,8 @@ class KnowledgeGraphBuilder:
                     (fhash, f.path)
                 )
             self.db.conn.commit()
-        except Exception:
-            pass
+        except Exception as e:
+            _logger.warning(f"[HASH_UPDATE] 更新文件哈希失败: {e}")
         
         # 获取统计信息
         stats = self.db.get_statistics()
@@ -1999,13 +2007,13 @@ def build_knowledge_graph(project_path: str, db_path: str = "code.db") -> Knowle
 def ask_ai(question: str, api_key: str, db_path: str = "code.db") -> Dict:
     """AI查询的便捷函数"""
     db = DatabaseManager(db_path)
-    db.connect()
-    
-    ai = AIQueryInterface(api_key, db)
-    result = ai.ask(question)
-    
-    db.close()
-    return result
+    try:
+        db.connect()
+        ai = AIQueryInterface(api_key, db)
+        result = ai.ask(question)
+        return result
+    finally:
+        db.close()
 
 
 # ============================================================================

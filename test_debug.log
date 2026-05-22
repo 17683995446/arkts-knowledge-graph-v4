@@ -1,213 +1,213 @@
-[2026-05-21 15:05:59,632] [INFO] [setup:70] ================================================================================
-[2026-05-21 15:05:59,633] [INFO] [setup:71] 开始全面测试
-[2026-05-21 15:05:59,633] [INFO] [setup:72] ================================================================================
-[2026-05-21 15:05:59,633] [INFO] [setup:78] 创建临时测试目录: /tmp/arkts_test_kokoutnz/test_project
-[2026-05-21 15:05:59,633] [INFO] [test_basic_parsing:137] 
+[2026-05-22 00:42:44,982] [INFO] [setup:70] ================================================================================
+[2026-05-22 00:42:44,982] [INFO] [setup:71] 开始全面测试
+[2026-05-22 00:42:44,982] [INFO] [setup:72] ================================================================================
+[2026-05-22 00:42:44,982] [INFO] [setup:78] 创建临时测试目录: /tmp/arkts_test_df_hrigw/test_project
+[2026-05-22 00:42:44,983] [INFO] [test_basic_parsing:137] 
 ============================================================
-[2026-05-21 15:05:59,633] [INFO] [test_basic_parsing:138] 测试: 基础解析功能
-[2026-05-21 15:05:59,633] [INFO] [test_basic_parsing:139] ============================================================
-[2026-05-21 15:05:59,634] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/pages/Index.ets
-[2026-05-21 15:05:59,644] [INFO] [test_basic_parsing:177] 结果: [PASS] 基础解析功能 (0.01s)
-[2026-05-21 15:05:59,645] [INFO] [test_database_operations:181] 
+[2026-05-22 00:42:44,983] [INFO] [test_basic_parsing:138] 测试: 基础解析功能
+[2026-05-22 00:42:44,983] [INFO] [test_basic_parsing:139] ============================================================
+[2026-05-22 00:42:44,983] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/pages/Index.ets
+[2026-05-22 00:42:44,998] [INFO] [test_basic_parsing:177] 结果: [PASS] 基础解析功能 (0.02s)
+[2026-05-22 00:42:44,998] [INFO] [test_database_operations:181] 
 ============================================================
-[2026-05-21 15:05:59,645] [INFO] [test_database_operations:182] 测试: 数据库操作
-[2026-05-21 15:05:59,645] [INFO] [test_database_operations:183] ============================================================
-[2026-05-21 15:05:59,658] [INFO] [test_database_operations:212] 结果: [PASS] 数据库操作 (0.01s)
-[2026-05-21 15:05:59,658] [INFO] [test_smart_filter:216] 
+[2026-05-22 00:42:44,998] [INFO] [test_database_operations:182] 测试: 数据库操作
+[2026-05-22 00:42:44,998] [INFO] [test_database_operations:183] ============================================================
+[2026-05-22 00:42:45,006] [INFO] [test_database_operations:212] 结果: [PASS] 数据库操作 (0.01s)
+[2026-05-22 00:42:45,006] [INFO] [test_smart_filter:216] 
 ============================================================
-[2026-05-21 15:05:59,658] [INFO] [test_smart_filter:217] 测试: 智能过滤器
-[2026-05-21 15:05:59,658] [INFO] [test_smart_filter:218] ============================================================
-[2026-05-21 15:05:59,662] [INFO] [test_smart_filter:254] 结果: [PASS] 智能过滤器 (0.00s)
-[2026-05-21 15:05:59,662] [INFO] [test_complex_nesting:258] 
+[2026-05-22 00:42:45,006] [INFO] [test_smart_filter:217] 测试: 智能过滤器
+[2026-05-22 00:42:45,006] [INFO] [test_smart_filter:218] ============================================================
+[2026-05-22 00:42:45,008] [INFO] [test_smart_filter:254] 结果: [PASS] 智能过滤器 (0.00s)
+[2026-05-22 00:42:45,008] [INFO] [test_complex_nesting:258] 
 ============================================================
-[2026-05-21 15:05:59,662] [INFO] [test_complex_nesting:259] 测试: 复杂嵌套场景
-[2026-05-21 15:05:59,662] [INFO] [test_complex_nesting:260] ============================================================
-[2026-05-21 15:05:59,662] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/pages/DeepNest.ets
-[2026-05-21 15:05:59,668] [INFO] [test_complex_nesting:316] 结果: [PASS] 复杂嵌套场景 (0.01s)
-[2026-05-21 15:05:59,668] [INFO] [test_circular_dependencies:320] 
+[2026-05-22 00:42:45,008] [INFO] [test_complex_nesting:259] 测试: 复杂嵌套场景
+[2026-05-22 00:42:45,008] [INFO] [test_complex_nesting:260] ============================================================
+[2026-05-22 00:42:45,008] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/pages/DeepNest.ets
+[2026-05-22 00:42:45,013] [INFO] [test_complex_nesting:316] 结果: [PASS] 复杂嵌套场景 (0.00s)
+[2026-05-22 00:42:45,013] [INFO] [test_circular_dependencies:320] 
 ============================================================
-[2026-05-21 15:05:59,668] [INFO] [test_circular_dependencies:321] 测试: 循环依赖
-[2026-05-21 15:05:59,668] [INFO] [test_circular_dependencies:322] ============================================================
-[2026-05-21 15:05:59,672] [INFO] [test_circular_dependencies:366] 结果: [PASS] 循环依赖 (0.00s)
-[2026-05-21 15:05:59,672] [INFO] [test_large_file_handling:370] 
+[2026-05-22 00:42:45,013] [INFO] [test_circular_dependencies:321] 测试: 循环依赖
+[2026-05-22 00:42:45,013] [INFO] [test_circular_dependencies:322] ============================================================
+[2026-05-22 00:42:45,015] [INFO] [test_circular_dependencies:366] 结果: [PASS] 循环依赖 (0.00s)
+[2026-05-22 00:42:45,015] [INFO] [test_large_file_handling:370] 
 ============================================================
-[2026-05-21 15:05:59,672] [INFO] [test_large_file_handling:371] 测试: 大文件处理
-[2026-05-21 15:05:59,672] [INFO] [test_large_file_handling:372] ============================================================
-[2026-05-21 15:05:59,672] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/Large.ets
-[2026-05-21 15:05:59,759] [INFO] [test_large_file_handling:401] 结果: [PASS] 大文件处理 (0.09s)
-[2026-05-21 15:05:59,759] [INFO] [test_special_characters:405] 
+[2026-05-22 00:42:45,015] [INFO] [test_large_file_handling:371] 测试: 大文件处理
+[2026-05-22 00:42:45,015] [INFO] [test_large_file_handling:372] ============================================================
+[2026-05-22 00:42:45,015] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/Large.ets
+[2026-05-22 00:42:45,143] [INFO] [test_large_file_handling:401] 结果: [PASS] 大文件处理 (0.13s)
+[2026-05-22 00:42:45,143] [INFO] [test_special_characters:405] 
 ============================================================
-[2026-05-21 15:05:59,759] [INFO] [test_special_characters:406] 测试: 特殊字符
-[2026-05-21 15:05:59,759] [INFO] [test_special_characters:407] ============================================================
-[2026-05-21 15:05:59,759] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/Special.ets
-[2026-05-21 15:05:59,843] [INFO] [test_special_characters:445] 结果: [PASS] 特殊字符 (0.08s)
-[2026-05-21 15:05:59,843] [INFO] [test_empty_files:449] 
+[2026-05-22 00:42:45,143] [INFO] [test_special_characters:406] 测试: 特殊字符
+[2026-05-22 00:42:45,143] [INFO] [test_special_characters:407] ============================================================
+[2026-05-22 00:42:45,143] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/Special.ets
+[2026-05-22 00:42:45,270] [INFO] [test_special_characters:445] 结果: [PASS] 特殊字符 (0.13s)
+[2026-05-22 00:42:45,270] [INFO] [test_empty_files:449] 
 ============================================================
-[2026-05-21 15:05:59,844] [INFO] [test_empty_files:450] 测试: 空文件
-[2026-05-21 15:05:59,844] [INFO] [test_empty_files:451] ============================================================
-[2026-05-21 15:05:59,844] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/Empty.ets
-[2026-05-21 15:05:59,844] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/Whitespace.ets
-[2026-05-21 15:05:59,927] [INFO] [test_empty_files:473] 结果: [PASS] 空文件 (0.08s)
-[2026-05-21 15:05:59,927] [INFO] [test_malformed_code:477] 
+[2026-05-22 00:42:45,270] [INFO] [test_empty_files:450] 测试: 空文件
+[2026-05-22 00:42:45,270] [INFO] [test_empty_files:451] ============================================================
+[2026-05-22 00:42:45,270] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/Empty.ets
+[2026-05-22 00:42:45,270] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/Whitespace.ets
+[2026-05-22 00:42:45,397] [INFO] [test_empty_files:473] 结果: [PASS] 空文件 (0.13s)
+[2026-05-22 00:42:45,397] [INFO] [test_malformed_code:477] 
 ============================================================
-[2026-05-21 15:05:59,927] [INFO] [test_malformed_code:478] 测试: 畸形代码
-[2026-05-21 15:05:59,928] [INFO] [test_malformed_code:479] ============================================================
-[2026-05-21 15:05:59,928] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/Malformed.ets
-[2026-05-21 15:06:00,014] [INFO] [test_malformed_code:513] 结果: [PASS] 畸形代码 (0.09s)
-[2026-05-21 15:06:00,014] [INFO] [test_unicode_content:517] 
+[2026-05-22 00:42:45,397] [INFO] [test_malformed_code:478] 测试: 畸形代码
+[2026-05-22 00:42:45,397] [INFO] [test_malformed_code:479] ============================================================
+[2026-05-22 00:42:45,397] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/Malformed.ets
+[2026-05-22 00:42:45,525] [INFO] [test_malformed_code:513] 结果: [PASS] 畸形代码 (0.13s)
+[2026-05-22 00:42:45,525] [INFO] [test_unicode_content:517] 
 ============================================================
-[2026-05-21 15:06:00,014] [INFO] [test_unicode_content:518] 测试: Unicode内容
-[2026-05-21 15:06:00,014] [INFO] [test_unicode_content:519] ============================================================
-[2026-05-21 15:06:00,014] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/Unicode.ets
-[2026-05-21 15:06:00,099] [INFO] [test_unicode_content:558] 结果: [PASS] Unicode内容 (0.09s)
-[2026-05-21 15:06:00,100] [INFO] [test_very_long_names:562] 
+[2026-05-22 00:42:45,525] [INFO] [test_unicode_content:518] 测试: Unicode内容
+[2026-05-22 00:42:45,525] [INFO] [test_unicode_content:519] ============================================================
+[2026-05-22 00:42:45,525] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/Unicode.ets
+[2026-05-22 00:42:45,654] [INFO] [test_unicode_content:558] 结果: [PASS] Unicode内容 (0.13s)
+[2026-05-22 00:42:45,654] [INFO] [test_very_long_names:562] 
 ============================================================
-[2026-05-21 15:06:00,100] [INFO] [test_very_long_names:563] 测试: 超长名称
-[2026-05-21 15:06:00,100] [INFO] [test_very_long_names:564] ============================================================
-[2026-05-21 15:06:00,100] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/LongNames.ets
-[2026-05-21 15:06:00,186] [INFO] [test_very_long_names:594] 结果: [PASS] 超长名称 (0.09s)
-[2026-05-21 15:06:00,187] [INFO] [test_missing_files:598] 
+[2026-05-22 00:42:45,654] [INFO] [test_very_long_names:563] 测试: 超长名称
+[2026-05-22 00:42:45,654] [INFO] [test_very_long_names:564] ============================================================
+[2026-05-22 00:42:45,655] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/LongNames.ets
+[2026-05-22 00:42:45,785] [INFO] [test_very_long_names:594] 结果: [PASS] 超长名称 (0.13s)
+[2026-05-22 00:42:45,786] [INFO] [test_missing_files:598] 
 ============================================================
-[2026-05-21 15:06:00,187] [INFO] [test_missing_files:599] 测试: 缺失文件
-[2026-05-21 15:06:00,187] [INFO] [test_missing_files:600] ============================================================
-[2026-05-21 15:06:00,187] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/MissingRef.ets
-[2026-05-21 15:06:00,276] [INFO] [test_missing_files:624] 结果: [PASS] 缺失文件 (0.09s)
-[2026-05-21 15:06:00,276] [INFO] [test_invalid_paths:628] 
+[2026-05-22 00:42:45,786] [INFO] [test_missing_files:599] 测试: 缺失文件
+[2026-05-22 00:42:45,786] [INFO] [test_missing_files:600] ============================================================
+[2026-05-22 00:42:45,786] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/MissingRef.ets
+[2026-05-22 00:42:45,915] [INFO] [test_missing_files:624] 结果: [PASS] 缺失文件 (0.13s)
+[2026-05-22 00:42:45,916] [INFO] [test_invalid_paths:628] 
 ============================================================
-[2026-05-21 15:06:00,276] [INFO] [test_invalid_paths:629] 测试: 无效路径
-[2026-05-21 15:06:00,276] [INFO] [test_invalid_paths:630] ============================================================
-[2026-05-21 15:06:00,276] [INFO] [test_invalid_paths:651] 结果: [PASS] 无效路径 (0.00s)
-[2026-05-21 15:06:00,276] [INFO] [test_database_corruption:655] 
+[2026-05-22 00:42:45,916] [INFO] [test_invalid_paths:629] 测试: 无效路径
+[2026-05-22 00:42:45,916] [INFO] [test_invalid_paths:630] ============================================================
+[2026-05-22 00:42:45,916] [INFO] [test_invalid_paths:651] 结果: [PASS] 无效路径 (0.00s)
+[2026-05-22 00:42:45,916] [INFO] [test_database_corruption:655] 
 ============================================================
-[2026-05-21 15:06:00,277] [INFO] [test_database_corruption:656] 测试: 数据库损坏处理
-[2026-05-21 15:06:00,277] [INFO] [test_database_corruption:657] ============================================================
-[2026-05-21 15:06:00,277] [INFO] [test_database_corruption:683] 结果: [PASS] 数据库损坏处理 (0.00s)
-[2026-05-21 15:06:00,277] [INFO] [test_incremental_parsing:687] 
+[2026-05-22 00:42:45,916] [INFO] [test_database_corruption:656] 测试: 数据库损坏处理
+[2026-05-22 00:42:45,916] [INFO] [test_database_corruption:657] ============================================================
+[2026-05-22 00:42:45,917] [INFO] [test_database_corruption:683] 结果: [PASS] 数据库损坏处理 (0.00s)
+[2026-05-22 00:42:45,917] [INFO] [test_incremental_parsing:687] 
 ============================================================
-[2026-05-21 15:06:00,277] [INFO] [test_incremental_parsing:688] 测试: 增量解析
-[2026-05-21 15:06:00,277] [INFO] [test_incremental_parsing:689] ============================================================
-[2026-05-21 15:06:00,278] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/Stable.ets
-[2026-05-21 15:06:00,278] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/Changing.ets
-[2026-05-21 15:06:00,487] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/Changing.ets
-[2026-05-21 15:06:00,497] [INFO] [test_incremental_parsing:720] 结果: [PASS] 增量解析 (0.22s)
-[2026-05-21 15:06:00,503] [INFO] [test_performance_with_many_files:724] 
+[2026-05-22 00:42:45,917] [INFO] [test_incremental_parsing:688] 测试: 增量解析
+[2026-05-22 00:42:45,917] [INFO] [test_incremental_parsing:689] ============================================================
+[2026-05-22 00:42:45,917] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/Stable.ets
+[2026-05-22 00:42:45,917] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/Changing.ets
+[2026-05-22 00:42:46,160] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/Changing.ets
+[2026-05-22 00:42:46,163] [INFO] [test_incremental_parsing:720] 结果: [PASS] 增量解析 (0.25s)
+[2026-05-22 00:42:46,168] [INFO] [test_performance_with_many_files:724] 
 ============================================================
-[2026-05-21 15:06:00,503] [INFO] [test_performance_with_many_files:725] 测试: 大量文件性能
-[2026-05-21 15:06:00,503] [INFO] [test_performance_with_many_files:726] ============================================================
-[2026-05-21 15:06:00,504] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component0.ets
-[2026-05-21 15:06:00,504] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component1.ets
-[2026-05-21 15:06:00,504] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component2.ets
-[2026-05-21 15:06:00,504] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component3.ets
-[2026-05-21 15:06:00,504] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component4.ets
-[2026-05-21 15:06:00,505] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component5.ets
-[2026-05-21 15:06:00,505] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component6.ets
-[2026-05-21 15:06:00,505] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component7.ets
-[2026-05-21 15:06:00,505] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component8.ets
-[2026-05-21 15:06:00,505] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component9.ets
-[2026-05-21 15:06:00,506] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component10.ets
-[2026-05-21 15:06:00,506] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component11.ets
-[2026-05-21 15:06:00,506] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component12.ets
-[2026-05-21 15:06:00,506] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component13.ets
-[2026-05-21 15:06:00,506] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component14.ets
-[2026-05-21 15:06:00,507] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component15.ets
-[2026-05-21 15:06:00,507] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component16.ets
-[2026-05-21 15:06:00,507] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component17.ets
-[2026-05-21 15:06:00,507] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component18.ets
-[2026-05-21 15:06:00,507] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component19.ets
-[2026-05-21 15:06:00,508] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component20.ets
-[2026-05-21 15:06:00,508] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component21.ets
-[2026-05-21 15:06:00,508] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component22.ets
-[2026-05-21 15:06:00,508] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component23.ets
-[2026-05-21 15:06:00,509] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component24.ets
-[2026-05-21 15:06:00,509] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component25.ets
-[2026-05-21 15:06:00,509] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component26.ets
-[2026-05-21 15:06:00,509] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component27.ets
-[2026-05-21 15:06:00,509] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component28.ets
-[2026-05-21 15:06:00,510] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component29.ets
-[2026-05-21 15:06:00,510] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component30.ets
-[2026-05-21 15:06:00,510] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component31.ets
-[2026-05-21 15:06:00,510] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component32.ets
-[2026-05-21 15:06:00,510] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component33.ets
-[2026-05-21 15:06:00,511] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component34.ets
-[2026-05-21 15:06:00,511] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component35.ets
-[2026-05-21 15:06:00,511] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component36.ets
-[2026-05-21 15:06:00,511] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component37.ets
-[2026-05-21 15:06:00,511] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component38.ets
-[2026-05-21 15:06:00,512] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component39.ets
-[2026-05-21 15:06:00,512] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component40.ets
-[2026-05-21 15:06:00,512] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component41.ets
-[2026-05-21 15:06:00,512] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component42.ets
-[2026-05-21 15:06:00,512] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component43.ets
-[2026-05-21 15:06:00,513] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component44.ets
-[2026-05-21 15:06:00,513] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component45.ets
-[2026-05-21 15:06:00,513] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component46.ets
-[2026-05-21 15:06:00,513] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component47.ets
-[2026-05-21 15:06:00,513] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component48.ets
-[2026-05-21 15:06:00,514] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component49.ets
-[2026-05-21 15:06:00,514] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component50.ets
-[2026-05-21 15:06:00,514] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component51.ets
-[2026-05-21 15:06:00,514] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component52.ets
-[2026-05-21 15:06:00,514] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component53.ets
-[2026-05-21 15:06:00,515] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component54.ets
-[2026-05-21 15:06:00,515] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component55.ets
-[2026-05-21 15:06:00,515] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component56.ets
-[2026-05-21 15:06:00,515] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component57.ets
-[2026-05-21 15:06:00,515] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component58.ets
-[2026-05-21 15:06:00,516] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component59.ets
-[2026-05-21 15:06:00,516] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component60.ets
-[2026-05-21 15:06:00,516] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component61.ets
-[2026-05-21 15:06:00,516] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component62.ets
-[2026-05-21 15:06:00,516] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component63.ets
-[2026-05-21 15:06:00,517] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component64.ets
-[2026-05-21 15:06:00,517] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component65.ets
-[2026-05-21 15:06:00,517] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component66.ets
-[2026-05-21 15:06:00,517] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component67.ets
-[2026-05-21 15:06:00,517] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component68.ets
-[2026-05-21 15:06:00,518] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component69.ets
-[2026-05-21 15:06:00,518] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component70.ets
-[2026-05-21 15:06:00,518] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component71.ets
-[2026-05-21 15:06:00,518] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component72.ets
-[2026-05-21 15:06:00,519] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component73.ets
-[2026-05-21 15:06:00,519] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component74.ets
-[2026-05-21 15:06:00,519] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component75.ets
-[2026-05-21 15:06:00,519] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component76.ets
-[2026-05-21 15:06:00,519] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component77.ets
-[2026-05-21 15:06:00,520] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component78.ets
-[2026-05-21 15:06:00,520] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component79.ets
-[2026-05-21 15:06:00,520] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component80.ets
-[2026-05-21 15:06:00,520] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component81.ets
-[2026-05-21 15:06:00,520] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component82.ets
-[2026-05-21 15:06:00,521] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component83.ets
-[2026-05-21 15:06:00,521] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component84.ets
-[2026-05-21 15:06:00,521] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component85.ets
-[2026-05-21 15:06:00,521] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component86.ets
-[2026-05-21 15:06:00,522] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component87.ets
-[2026-05-21 15:06:00,522] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component88.ets
-[2026-05-21 15:06:00,522] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component89.ets
-[2026-05-21 15:06:00,522] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component90.ets
-[2026-05-21 15:06:00,523] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component91.ets
-[2026-05-21 15:06:00,523] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component92.ets
-[2026-05-21 15:06:00,523] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component93.ets
-[2026-05-21 15:06:00,523] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component94.ets
-[2026-05-21 15:06:00,523] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component95.ets
-[2026-05-21 15:06:00,524] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component96.ets
-[2026-05-21 15:06:00,524] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component97.ets
-[2026-05-21 15:06:00,524] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component98.ets
-[2026-05-21 15:06:00,524] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/components/Component99.ets
-[2026-05-21 15:06:00,691] [INFO] [test_performance_with_many_files:759] 结果: [PASS] 大量文件性能 (0.19s)
-[2026-05-21 15:06:00,691] [INFO] [test_coverage_validation:763] 
+[2026-05-22 00:42:46,168] [INFO] [test_performance_with_many_files:725] 测试: 大量文件性能
+[2026-05-22 00:42:46,168] [INFO] [test_performance_with_many_files:726] ============================================================
+[2026-05-22 00:42:46,168] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component0.ets
+[2026-05-22 00:42:46,168] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component1.ets
+[2026-05-22 00:42:46,169] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component2.ets
+[2026-05-22 00:42:46,169] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component3.ets
+[2026-05-22 00:42:46,169] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component4.ets
+[2026-05-22 00:42:46,169] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component5.ets
+[2026-05-22 00:42:46,169] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component6.ets
+[2026-05-22 00:42:46,169] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component7.ets
+[2026-05-22 00:42:46,169] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component8.ets
+[2026-05-22 00:42:46,169] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component9.ets
+[2026-05-22 00:42:46,170] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component10.ets
+[2026-05-22 00:42:46,170] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component11.ets
+[2026-05-22 00:42:46,170] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component12.ets
+[2026-05-22 00:42:46,170] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component13.ets
+[2026-05-22 00:42:46,170] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component14.ets
+[2026-05-22 00:42:46,170] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component15.ets
+[2026-05-22 00:42:46,170] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component16.ets
+[2026-05-22 00:42:46,170] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component17.ets
+[2026-05-22 00:42:46,170] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component18.ets
+[2026-05-22 00:42:46,171] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component19.ets
+[2026-05-22 00:42:46,171] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component20.ets
+[2026-05-22 00:42:46,171] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component21.ets
+[2026-05-22 00:42:46,171] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component22.ets
+[2026-05-22 00:42:46,171] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component23.ets
+[2026-05-22 00:42:46,171] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component24.ets
+[2026-05-22 00:42:46,171] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component25.ets
+[2026-05-22 00:42:46,171] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component26.ets
+[2026-05-22 00:42:46,171] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component27.ets
+[2026-05-22 00:42:46,172] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component28.ets
+[2026-05-22 00:42:46,172] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component29.ets
+[2026-05-22 00:42:46,172] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component30.ets
+[2026-05-22 00:42:46,172] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component31.ets
+[2026-05-22 00:42:46,172] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component32.ets
+[2026-05-22 00:42:46,172] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component33.ets
+[2026-05-22 00:42:46,172] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component34.ets
+[2026-05-22 00:42:46,172] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component35.ets
+[2026-05-22 00:42:46,172] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component36.ets
+[2026-05-22 00:42:46,173] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component37.ets
+[2026-05-22 00:42:46,173] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component38.ets
+[2026-05-22 00:42:46,173] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component39.ets
+[2026-05-22 00:42:46,173] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component40.ets
+[2026-05-22 00:42:46,173] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component41.ets
+[2026-05-22 00:42:46,173] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component42.ets
+[2026-05-22 00:42:46,173] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component43.ets
+[2026-05-22 00:42:46,173] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component44.ets
+[2026-05-22 00:42:46,173] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component45.ets
+[2026-05-22 00:42:46,173] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component46.ets
+[2026-05-22 00:42:46,174] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component47.ets
+[2026-05-22 00:42:46,174] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component48.ets
+[2026-05-22 00:42:46,174] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component49.ets
+[2026-05-22 00:42:46,174] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component50.ets
+[2026-05-22 00:42:46,174] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component51.ets
+[2026-05-22 00:42:46,174] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component52.ets
+[2026-05-22 00:42:46,174] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component53.ets
+[2026-05-22 00:42:46,174] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component54.ets
+[2026-05-22 00:42:46,175] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component55.ets
+[2026-05-22 00:42:46,175] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component56.ets
+[2026-05-22 00:42:46,175] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component57.ets
+[2026-05-22 00:42:46,175] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component58.ets
+[2026-05-22 00:42:46,175] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component59.ets
+[2026-05-22 00:42:46,175] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component60.ets
+[2026-05-22 00:42:46,175] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component61.ets
+[2026-05-22 00:42:46,175] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component62.ets
+[2026-05-22 00:42:46,175] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component63.ets
+[2026-05-22 00:42:46,175] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component64.ets
+[2026-05-22 00:42:46,176] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component65.ets
+[2026-05-22 00:42:46,176] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component66.ets
+[2026-05-22 00:42:46,176] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component67.ets
+[2026-05-22 00:42:46,176] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component68.ets
+[2026-05-22 00:42:46,176] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component69.ets
+[2026-05-22 00:42:46,176] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component70.ets
+[2026-05-22 00:42:46,176] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component71.ets
+[2026-05-22 00:42:46,176] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component72.ets
+[2026-05-22 00:42:46,176] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component73.ets
+[2026-05-22 00:42:46,177] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component74.ets
+[2026-05-22 00:42:46,177] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component75.ets
+[2026-05-22 00:42:46,177] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component76.ets
+[2026-05-22 00:42:46,177] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component77.ets
+[2026-05-22 00:42:46,177] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component78.ets
+[2026-05-22 00:42:46,177] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component79.ets
+[2026-05-22 00:42:46,177] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component80.ets
+[2026-05-22 00:42:46,177] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component81.ets
+[2026-05-22 00:42:46,177] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component82.ets
+[2026-05-22 00:42:46,178] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component83.ets
+[2026-05-22 00:42:46,178] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component84.ets
+[2026-05-22 00:42:46,178] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component85.ets
+[2026-05-22 00:42:46,178] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component86.ets
+[2026-05-22 00:42:46,178] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component87.ets
+[2026-05-22 00:42:46,178] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component88.ets
+[2026-05-22 00:42:46,178] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component89.ets
+[2026-05-22 00:42:46,178] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component90.ets
+[2026-05-22 00:42:46,178] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component91.ets
+[2026-05-22 00:42:46,179] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component92.ets
+[2026-05-22 00:42:46,179] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component93.ets
+[2026-05-22 00:42:46,179] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component94.ets
+[2026-05-22 00:42:46,179] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component95.ets
+[2026-05-22 00:42:46,179] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component96.ets
+[2026-05-22 00:42:46,179] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component97.ets
+[2026-05-22 00:42:46,179] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component98.ets
+[2026-05-22 00:42:46,179] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/components/Component99.ets
+[2026-05-22 00:42:46,343] [INFO] [test_performance_with_many_files:759] 结果: [PASS] 大量文件性能 (0.18s)
+[2026-05-22 00:42:46,344] [INFO] [test_coverage_validation:763] 
 ============================================================
-[2026-05-21 15:06:00,691] [INFO] [test_coverage_validation:764] 测试: 覆盖率验证
-[2026-05-21 15:06:00,691] [INFO] [test_coverage_validation:765] ============================================================
-[2026-05-21 15:06:00,691] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_kokoutnz/test_project/Main.ets
-[2026-05-21 15:06:00,996] [INFO] [test_coverage_validation:805] 结果: [PASS] 覆盖率验证 (0.30s)
-[2026-05-21 15:06:01,011] [INFO] [teardown:84] 清理临时目录: /tmp/arkts_test_kokoutnz
-[2026-05-21 15:06:01,011] [INFO] [print_summary:809] 
+[2026-05-22 00:42:46,344] [INFO] [test_coverage_validation:764] 测试: 覆盖率验证
+[2026-05-22 00:42:46,344] [INFO] [test_coverage_validation:765] ============================================================
+[2026-05-22 00:42:46,344] [DEBUG] [_create_test_file:132] 创建测试文件: /tmp/arkts_test_df_hrigw/test_project/Main.ets
+[2026-05-22 00:42:46,564] [INFO] [test_coverage_validation:805] 结果: [PASS] 覆盖率验证 (0.22s)
+[2026-05-22 00:42:46,571] [INFO] [teardown:84] 清理临时目录: /tmp/arkts_test_df_hrigw
+[2026-05-22 00:42:46,571] [INFO] [print_summary:809] 
 ================================================================================
-[2026-05-21 15:06:01,012] [INFO] [print_summary:810] 测试摘要
-[2026-05-21 15:06:01,012] [INFO] [print_summary:811] ================================================================================
-[2026-05-21 15:06:01,012] [INFO] [print_summary:817] 总计: 17 个测试
-[2026-05-21 15:06:01,012] [INFO] [print_summary:818] 通过: 17 个
-[2026-05-21 15:06:01,012] [INFO] [print_summary:819] 失败: 0 个
-[2026-05-21 15:06:01,012] [INFO] [print_summary:820] 通过率: 100.0%
-[2026-05-21 15:06:01,012] [INFO] [print_summary:828] ================================================================================
+[2026-05-22 00:42:46,571] [INFO] [print_summary:810] 测试摘要
+[2026-05-22 00:42:46,571] [INFO] [print_summary:811] ================================================================================
+[2026-05-22 00:42:46,571] [INFO] [print_summary:817] 总计: 17 个测试
+[2026-05-22 00:42:46,571] [INFO] [print_summary:818] 通过: 17 个
+[2026-05-22 00:42:46,571] [INFO] [print_summary:819] 失败: 0 个
+[2026-05-22 00:42:46,571] [INFO] [print_summary:820] 通过率: 100.0%
+[2026-05-22 00:42:46,571] [INFO] [print_summary:828] ================================================================================
