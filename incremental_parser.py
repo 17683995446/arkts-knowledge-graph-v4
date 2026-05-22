@@ -120,10 +120,20 @@ class IncrementalParser:
         self.conn.execute("DELETE FROM inherits WHERE file = ?", (file_path,))
         # 删除 decorators
         self.conn.execute("DELETE FROM decorators WHERE file = ?", (file_path,))
-        # 删除 imports
+        # 删除 imports（列名为 source_file）
         self.conn.execute("DELETE FROM imports WHERE source_file = ?", (file_path,))
-        # 删除 state_relations
-        self.conn.execute("DELETE FROM state_relations WHERE file = ?", (file_path,))
+        # 删除 state_relations（无 file 列，通过类名关联删除）
+        # 先查找该文件中的所有类名
+        try:
+            class_rows = self.conn.execute(
+                "SELECT name FROM classes WHERE file = ?", (file_path,)
+            ).fetchall()
+            for (cls_name,) in class_rows:
+                self.conn.execute(
+                    "DELETE FROM state_relations WHERE source_class = ?", (cls_name,)
+                )
+        except Exception:
+            pass  # 表不存在时忽略
         # 删除 interfaces
         self.conn.execute("DELETE FROM interfaces WHERE file = ?", (file_path,))
         # 删除 enums

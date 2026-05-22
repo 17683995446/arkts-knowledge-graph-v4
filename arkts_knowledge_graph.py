@@ -871,8 +871,11 @@ class ArkTSParser:
         for match in self.struct_pattern.finditer(stripped):
             name = match.group(3)
             before = stripped[:match.start()]
+            # 向前搜索装饰器区域：取最后一个 '}' 或行首之后的内容
+            # 但至少向前搜索500个字符以覆盖多行装饰器
             last_brace = before.rfind('}')
-            region = before[last_brace:] if last_brace != -1 else before
+            search_start = max(0, last_brace) if last_brace != -1 else max(0, len(before) - 500)
+            region = before[search_start:]
             if self.component_decorator.search(region):
                 self._component_names.add(name)
                 _logger.debug(f"[SCAN] struct '{name}' -> component (decorator found)")
@@ -1789,29 +1792,41 @@ class KnowledgeGraphBuilder:
             stats = self.db.get_statistics()
             return stats
 
-        # 清理删除的文件记录
+        # 清理删除的文件记录（覆盖所有12张表）
         if deleted_files:
+            # 每张表中文件路径的列名可能不同
+            _table_file_columns = {
+                'calls': 'file', 'methods': 'file', 'classes': 'file',
+                'components': 'file', 'inherits': 'file', 'files': 'path',
+                'decorators': 'file', 'interfaces': 'file', 'enums': 'file',
+                'type_aliases': 'file',
+                'imports': 'source_file',
+                'state_relations': None,  # state_relations 无 file 列，按 source_class 关联
+            }
             for f in deleted_files:
-                self.db.conn.execute("DELETE FROM calls WHERE file = ?", (f,))
-                self.db.conn.execute("DELETE FROM methods WHERE file = ?", (f,))
-                self.db.conn.execute("DELETE FROM classes WHERE file = ?", (f,))
-                self.db.conn.execute("DELETE FROM files WHERE path = ?", (f,))
+                for table, col in _table_file_columns.items():
+                    if col is None:
+                        continue
+                    self.db.conn.execute(f"DELETE FROM [{table}] WHERE [{col}] = ?", (f,))
+                _logger.debug(f"[INCREMENTAL] Deleted all records for removed file: {f}")
             self.db.conn.commit()
             print(f"  已清理 {len(deleted_files)} 个删除文件的记录")
 
-        # 如果是增量且有变更文件，只解析变更文件
-        if files_to_parse is not None and len(files_to_parse) > 0:
-            # 增量模式：只删除变更文件的旧记录，不清空整个数据库
-            print(f"  增量解析 {len(files_to_parse)} 个变更文件")
-            from incremental_parser import IncrementalParser
-            inc = IncrementalParser(self.db.db_path)
-            inc.conn = self.db.conn  # 复用已有连接
-            for f in files_to_parse:
-                fpath = str(f)
-                inc.delete_file_records(fpath)
-                _logger.debug(f"[INCREMENTAL] Deleted records for changed file: {fpath}")
-            # 提交删除操作，避免与后续事务冲突
-            self.db.conn.commit()
+        # 如果是增量模式（有变更文件），只删除变更文件的旧记录
+        if incremental and files_to_parse is not None:
+            if len(files_to_parse) > 0:
+                print(f"  增量解析 {len(files_to_parse)} 个变更文件")
+                from incremental_parser import IncrementalParser
+                inc = IncrementalParser(self.db.db_path)
+                inc.conn = self.db.conn  # 复用已有连接
+                for f in files_to_parse:
+                    fpath = str(f)
+                    inc.delete_file_records(fpath)
+                    _logger.debug(f"[INCREMENTAL] Deleted records for changed file: {fpath}")
+                # 提交删除操作，避免与后续事务冲突
+                self.db.conn.commit()
+            # 注意：增量模式下即使 files_to_parse 为空（只有删除没有新增/修改），
+            # 也不清空表，保留剩余文件的数据
         else:
             # 全量构建：清空表
             self.db.clear_tables()
