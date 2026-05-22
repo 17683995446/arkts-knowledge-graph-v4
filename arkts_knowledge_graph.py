@@ -930,7 +930,9 @@ class ArkTSParser:
             # 提取struct的implements接口关系
             implements_str = match.group(5)
             if implements_str:
-                for iface_name in re.findall(r'\b(\w+)\b', implements_str):
+                # 先移除泛型参数 <...>，避免泛型参数被误识别为接口名
+                implements_clean = re.sub(r'<[^>]*>', '', implements_str)
+                for iface_name in re.findall(r'\b(\w+)\b', implements_clean):
                     # 过滤：关键字、自身名、单字母（泛型参数如T/U/V）
                     if (iface_name not in self.JS_KEYWORDS 
                         and iface_name != name 
@@ -976,7 +978,9 @@ class ArkTSParser:
                 # 提取implements接口关系
                 implements_str = match.group(6)
                 if implements_str:
-                    for iface_name in re.findall(r'\b(\w+)\b', implements_str):
+                    # 先移除泛型参数 <...>，避免泛型参数被误识别为接口名
+                    implements_clean = re.sub(r'<[^>]*>', '', implements_str)
+                    for iface_name in re.findall(r'\b(\w+)\b', implements_clean):
                         # 过滤：关键字、自身名、单字母（泛型参数如T/U/V）
                         if (iface_name not in self.JS_KEYWORDS 
                             and iface_name != name 
