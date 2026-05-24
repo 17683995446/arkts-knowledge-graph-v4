@@ -428,9 +428,10 @@ class TestDatabaseManager(unittest.TestCase):
         """测试执行查询"""
         self.db.insert_file(FileInfo(path='/test/file.ets'))
         
-        results = self.db.execute_query("SELECT path FROM files")
-        self.assertEqual(len(results), 1)
-        self.assertEqual(results[0][0], '/test/file.ets')
+        rows, columns = self.db.execute_query("SELECT path FROM files")
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0][0], '/test/file.ets')
+        self.assertEqual(columns, ['path'])
 
     def test_get_schema_description(self):
         """测试获取Schema描述"""

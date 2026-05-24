@@ -6,11 +6,13 @@ ArkTS 知识图谱可视化 - Flask 后端服务
 
 import argparse
 import csv
+import glob
 import io
 import os
 import re
 import sqlite3
 import sys
+import time
 
 import requests
 from flask import Flask, jsonify, request, Response, send_file, send_from_directory
@@ -304,27 +306,14 @@ def search():
     return jsonify(result)
 
 
-@app.route("/api/ai/query", methods=["POST"])
-def ai_query():
-    """
-    AI 自然语言查询
-    请求体：{ "question": "...", "api_key": "..." }
-    使用硅基流动 API 将自然语言转 SQL，执行后返回结果
-    """
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "请求体不能为空"}), 400
+def ai_query_with_retry(question, api_key, max_retries=3, delay=1):
+    """AI 查询带重试机制，支持 SQL 验证和自动修正"""
+    last_error = None
 
-    question = data.get("question", "").strip()
-    api_key = data.get("api_key", "").strip()
-
-    if not question:
-        return jsonify({"error": "请提供 question 参数"}), 400
-    if not api_key:
-        return jsonify({"error": "请提供 api_key 参数"}), 400
-
-    # 构建 AI prompt
-    prompt = f"""你是一个SQL专家。根据以下数据库表结构，将用户的问题转换为准确的SQL查询语句。
+    for attempt in range(max_retries):
+        try:
+            # 构建 AI prompt
+            prompt = f"""你是一个SQL专家。根据以下数据库表结构，将用户的问题转换为准确的SQL查询语句。
 
 数据库表结构：
 1. files - 文件表 (path 主键, line_count)
@@ -345,64 +334,119 @@ def ai_query():
 
 SQL语句："""
 
-    # 调用硅基流动 API
-    try:
-        response = requests.post(
-            url="https://api.siliconflow.cn/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": "Qwen/Qwen2.5-7B-Instruct",
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.1,
-                "max_tokens": 512,
-            },
-            timeout=30,
-        )
-        response.raise_for_status()
-        ai_result = response.json()
-        sql = ai_result["choices"][0]["message"]["content"].strip()
-    except requests.exceptions.Timeout:
-        return jsonify({"error": "AI API 请求超时，请稍后重试"}), 504
-    except requests.exceptions.RequestException as e:
-        return jsonify({"error": f"AI API 请求失败: {str(e)}"}), 502
-    except (KeyError, IndexError):
-        return jsonify({"error": "AI API 返回格式异常"}), 502
+            # 调用硅基流动 API
+            response = requests.post(
+                url="https://api.siliconflow.cn/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": "Qwen/Qwen2.5-7B-Instruct",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.1,
+                    "max_tokens": 512,
+                },
+                timeout=30,
+            )
+            response.raise_for_status()
+            ai_result = response.json()
+            sql = ai_result["choices"][0]["message"]["content"].strip()
 
-    # 清理 SQL：去除 markdown 代码块标记，只保留纯 SQL
-    sql = sql.strip()
-    if sql.startswith("```"):
-        # 去除首尾的 ``` 标记
-        lines = sql.split("\n")
-        cleaned_lines = []
-        for line in lines:
-            if line.strip().startswith("```"):
+            # 清理 SQL：去除 markdown 代码块标记
+            sql = sql.strip()
+            if sql.startswith("```"):
+                lines = sql.split("\n")
+                cleaned_lines = []
+                for line in lines:
+                    if line.strip().startswith("```"):
+                        continue
+                    cleaned_lines.append(line)
+                sql = "\n".join(cleaned_lines).strip()
+
+            # 去除末尾多余的分号
+            sql = sql.rstrip(";").strip()
+
+            # SQL 安全检查
+            is_safe, error_msg = validate_sql(sql)
+            if not is_safe:
+                # SQL 安全检查失败，尝试重试
+                last_error = f"SQL安全检查失败: {error_msg}"
+                if attempt < max_retries - 1:
+                    time.sleep(delay * (attempt + 1))
                 continue
-            cleaned_lines.append(line)
-        sql = "\n".join(cleaned_lines).strip()
 
-    # 去除末尾多余的分号（sqlite3 不需要）
-    sql = sql.rstrip(";").strip()
+            # 尝试执行 SQL 验证
+            try:
+                conn = get_db()
+                try:
+                    cursor = conn.execute(sql)
+                    columns = [description[0] for description in cursor.description]
+                    rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+                    return {
+                        'success': True,
+                        'sql': sql,
+                        'columns': columns,
+                        'data': rows,
+                        'row_count': len(rows),
+                        'attempt': attempt + 1
+                    }
+                finally:
+                    conn.close()
+            except sqlite3.Error as e:
+                # SQL 执行失败，尝试重试
+                last_error = f"SQL 执行失败: {str(e)}"
+                if attempt < max_retries - 1:
+                    time.sleep(delay * (attempt + 1))
+                continue
 
-    # SQL 安全检查
-    is_safe, error_msg = validate_sql(sql)
-    if not is_safe:
-        return jsonify({'success': False, 'error': f'SQL安全检查失败: {error_msg}', 'sql': sql})
+        except requests.exceptions.Timeout:
+            last_error = "AI API 请求超时"
+            if attempt < max_retries - 1:
+                time.sleep(delay * (attempt + 1))
+        except requests.exceptions.RequestException as e:
+            last_error = f"AI API 请求失败: {str(e)}"
+            if attempt < max_retries - 1:
+                time.sleep(delay * (attempt + 1))
+        except (KeyError, IndexError):
+            last_error = "AI API 返回格式异常"
+            if attempt < max_retries - 1:
+                time.sleep(delay * (attempt + 1))
+        except Exception as e:
+            last_error = str(e)
+            if attempt < max_retries - 1:
+                time.sleep(delay * (attempt + 1))
 
-    # 执行生成的 SQL
-    try:
-        conn = get_db()
-        try:
-            cursor = conn.execute(sql)
-            columns = [description[0] for description in cursor.description]
-            rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
-            return jsonify({"sql": sql, "columns": columns, "data": rows, "row_count": len(rows)})
-        finally:
-            conn.close()
-    except sqlite3.Error as e:
-        return jsonify({"error": f"SQL 执行失败: {str(e)}", "sql": sql}), 500
+    return {'success': False, 'error': last_error, 'attempts': max_retries}
+
+
+@app.route("/api/ai/query", methods=["POST"])
+def ai_query():
+    """
+    AI 自然语言查询（带重试机制）
+    请求体：{ "question": "...", "api_key": "..." }
+    使用硅基流动 API 将自然语言转 SQL，执行后返回结果
+    支持最多 3 次重试，包含 SQL 验证和自动修正
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "请求体不能为空"}), 400
+
+    question = data.get("question", "").strip()
+    api_key = data.get("api_key", "").strip()
+
+    if not question:
+        return jsonify({"error": "请提供 question 参数"}), 400
+    if not api_key:
+        return jsonify({"error": "请提供 api_key 参数"}), 400
+
+    # 使用带重试机制的查询
+    result = ai_query_with_retry(question, api_key)
+
+    if result.get('success'):
+        return jsonify(result)
+    else:
+        return jsonify(result), 500
 
 
 @app.route("/api/export/json", methods=["GET"])
@@ -441,6 +485,218 @@ def export_csv(table_name):
         mimetype="text/csv",
         headers={"Content-Disposition": f"attachment; filename={table_name}.csv"},
     )
+
+
+# ============================================================
+# 第四十三阶段：数据可视化仪表板 API
+# ============================================================
+
+@app.route("/api/dashboard", methods=["GET"])
+def dashboard_data():
+    """仪表板数据：类分布、Top 10 类、调用关系统计、继承关系统计"""
+    conn = get_db()
+
+    try:
+        # 类分布
+        class_distribution = conn.execute("""
+            SELECT
+                CASE WHEN is_component = 1 THEN '组件' ELSE '普通类' END as type,
+                COUNT(*) as count
+            FROM classes GROUP BY type
+        """).fetchall()
+
+        # 方法数量分布（Top 10 类）
+        top_classes = conn.execute("""
+            SELECT class_name, COUNT(*) as method_count
+            FROM methods
+            GROUP BY class_name
+            ORDER BY method_count DESC
+            LIMIT 10
+        """).fetchall()
+
+        # 调用关系统计
+        call_stats = conn.execute("""
+            SELECT
+                COUNT(*) as total,
+                COUNT(DISTINCT caller_class) as callers,
+                COUNT(DISTINCT callee_class) as callees
+            FROM calls
+            WHERE caller_class != '' AND callee_class != ''
+        """).fetchone()
+
+        # 继承关系统计
+        inherit_stats = conn.execute("""
+            SELECT COUNT(*) FROM inherits
+        """).fetchone()
+
+        return jsonify({
+            'class_distribution': [{'type': r[0], 'count': r[1]} for r in class_distribution],
+            'top_classes': [{'name': r[0], 'methods': r[1]} for r in top_classes],
+            'call_stats': {
+                'total': call_stats[0] if call_stats else 0,
+                'callers': call_stats[1] if call_stats else 0,
+                'callees': call_stats[2] if call_stats else 0
+            },
+            'inherit_count': inherit_stats[0] if inherit_stats else 0
+        })
+    finally:
+        conn.close()
+
+
+# ============================================================
+# 第四十四阶段：API 文档（OpenAPI/Swagger）
+# ============================================================
+
+@app.route("/api/docs", methods=["GET"])
+def api_docs():
+    """API 文档（OpenAPI 3.0 格式）"""
+    docs = {
+        "openapi": "3.0.0",
+        "info": {
+            "title": "ArkTS Knowledge Graph API",
+            "version": "4.14.0",
+            "description": "ArkTS 代码知识图谱可视化系统 API"
+        },
+        "paths": {
+            "/api/stats": {
+                "get": {
+                    "summary": "获取统计信息",
+                    "description": "返回知识图谱的统计信息，包括文件数、类数、组件数、方法数、调用关系数等",
+                    "responses": {"200": {"description": "统计信息对象"}}
+                }
+            },
+            "/api/files": {
+                "get": {
+                    "summary": "获取文件列表",
+                    "parameters": [
+                        {"name": "limit", "in": "query", "schema": {"type": "integer"}},
+                        {"name": "offset", "in": "query", "schema": {"type": "integer"}}
+                    ],
+                    "responses": {"200": {"description": "文件列表"}}
+                }
+            },
+            "/api/classes": {
+                "get": {
+                    "summary": "获取类列表",
+                    "parameters": [
+                        {"name": "component_only", "in": "query", "schema": {"type": "boolean"}},
+                        {"name": "search", "in": "query", "schema": {"type": "string"}}
+                    ],
+                    "responses": {"200": {"description": "类列表"}}
+                }
+            },
+            "/api/methods": {
+                "get": {
+                    "summary": "获取方法列表",
+                    "parameters": [
+                        {"name": "class_name", "in": "query", "schema": {"type": "string"}}
+                    ],
+                    "responses": {"200": {"description": "方法列表"}}
+                }
+            },
+            "/api/calls": {
+                "get": {
+                    "summary": "获取调用关系",
+                    "responses": {"200": {"description": "调用关系列表"}}
+                }
+            },
+            "/api/components": {
+                "get": {
+                    "summary": "获取组件关系",
+                    "responses": {"200": {"description": "组件关系列表"}}
+                }
+            },
+            "/api/inherits": {
+                "get": {
+                    "summary": "获取继承关系",
+                    "responses": {"200": {"description": "继承关系列表"}}
+                }
+            },
+            "/api/search": {
+                "get": {
+                    "summary": "搜索",
+                    "parameters": [
+                        {"name": "q", "in": "query", "required": True, "schema": {"type": "string"}}
+                    ],
+                    "responses": {"200": {"description": "搜索结果"}}
+                }
+            },
+            "/api/ai/query": {
+                "post": {
+                    "summary": "AI 自然语言查询（带重试机制）",
+                    "description": "使用 AI 将自然语言转换为 SQL 查询，支持最多 3 次重试",
+                    "requestBody": {
+                        "required": True,
+                        "content": {"application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "question": {"type": "string", "description": "自然语言问题"},
+                                    "api_key": {"type": "string", "description": "AI API 密钥"}
+                                },
+                                "required": ["question"]
+                            }
+                        }}
+                    },
+                    "responses": {"200": {"description": "查询结果"}}
+                }
+            },
+            "/api/dashboard": {
+                "get": {
+                    "summary": "仪表板数据",
+                    "description": "返回仪表板统计数据，包括类分布、Top 10 类、调用关系统计等",
+                    "responses": {"200": {"description": "仪表板统计数据"}}
+                }
+            },
+            "/api/projects": {
+                "get": {
+                    "summary": "列出所有已解析的项目",
+                    "description": "扫描当前目录下的 .db 文件，列出所有已解析的项目",
+                    "responses": {"200": {"description": "项目列表"}}
+                }
+            },
+            "/api/export/json": {
+                "get": {"summary": "导出 JSON", "responses": {"200": {"description": "JSON 文件"}}}
+            },
+            "/api/export/csv/<table_name>": {
+                "get": {
+                    "summary": "导出 CSV",
+                    "parameters": [
+                        {"name": "table_name", "in": "path", "required": True, "schema": {"type": "string"}}
+                    ],
+                    "responses": {"200": {"description": "CSV 文件"}}
+                }
+            },
+            "/api/docs": {
+                "get": {"summary": "API 文档", "responses": {"200": {"description": "OpenAPI 文档"}}}
+            }
+        }
+    }
+    return jsonify(docs)
+
+
+# ============================================================
+# 第四十五阶段：多项目仪表板 API
+# ============================================================
+
+@app.route("/api/projects", methods=["GET"])
+def list_projects():
+    """列出所有已解析的项目（扫描当前目录下的 .db 文件）"""
+    db_files = glob.glob("*.db")
+    projects = []
+    for db_file in db_files:
+        try:
+            conn = sqlite3.connect(db_file)
+            stats = conn.execute("SELECT COUNT(*) FROM classes").fetchone()
+            conn.close()
+            projects.append({
+                'name': db_file.replace('.db', ''),
+                'db_path': db_file,
+                'class_count': stats[0] if stats else 0
+            })
+        except Exception:
+            pass
+    return jsonify({'projects': projects})
 
 
 # ============================================================

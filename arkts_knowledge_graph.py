@@ -300,8 +300,14 @@ class DatabaseManager:
             (file_info.path,)
         )
     
+    def _ensure_file_exists(self, file_path: str):
+        """确保文件记录存在（避免外键约束失败）"""
+        cursor = self.conn.cursor()
+        cursor.execute("INSERT OR IGNORE INTO files (path) VALUES (?)", (file_path,))
+
     def insert_class(self, class_info: ClassInfo):
         """插入类/组件记录"""
+        self._ensure_file_exists(class_info.file)
         cursor = self.conn.cursor()
         cursor.execute(
             """INSERT OR IGNORE INTO classes 
@@ -314,6 +320,7 @@ class DatabaseManager:
     
     def insert_method(self, method_info: MethodInfo):
         """插入方法记录"""
+        self._ensure_file_exists(method_info.file)
         cursor = self.conn.cursor()
         cursor.execute(
             """INSERT OR IGNORE INTO methods 
@@ -619,7 +626,7 @@ class ArkTSParser:
         # 注意：不包含装饰器匹配，装饰器在 _parse_methods 中预先移除
         # 支持泛型箭头函数属性：handler = <T>(data: T) => { ... }
         self.arrow_property_pattern = re.compile(
-            r'^[ \t]*(private\s+|public\s+|protected\s+)?(static\s+)?(' + _ID_PATTERN + r')\s*=\s*(?:<[^{}]*?>\s*)?\(',
+            r'^[ \t]*(private\s+|public\s+|protected\s+)?(static\s+)?(' + _ID_PATTERN + r')\s*=\s*(?:<[^{}]*?>\s*)?(async\s+)?\(',
             re.MULTILINE
         )
 
@@ -1360,13 +1367,9 @@ class ArkTSParser:
             obj_name = match.group(1)  # 可能是None
             callee = match.group(2)
 
-            # 跳过SKIP_IDENTIFIERS（但如果obj_name存在，保留常见方法名）
-            if callee in self.SKIP_IDENTIFIERS:
-                # 如果是 obj.method() 形式，保留常见方法名
-                if obj_name and callee in {'get', 'set', 'delete', 'has', 'of', 'entries', 'keys', 'values', 'forEach', 'map', 'filter', 'reduce', 'find', 'some', 'every', 'includes', 'indexOf', 'slice', 'splice', 'push', 'pop', 'shift', 'unshift', 'join', 'split', 'trim', 'toString', 'toFixed', 'stringify', 'parse', 'json', 'then', 'catch', 'finally', 'next', 'done', 'value', 'ok', 'status', 'length', 'count', 'round', 'min', 'max', 'abs', 'floor', 'ceil', 'random', 'sort', 'reverse', 'concat', 'flat', 'fill', 'copyWithin', 'entries', 'fetch'}:
-                    pass  # 保留
-                else:
-                    continue
+            # 跳过JS全局对象的标准方法调用（如 Math.abs, Promise.resolve, console.log）
+            if obj_name and obj_name in self.JS_GLOBALS:
+                continue
 
             # 跳过数字开头的obj_name
             if obj_name and re.match(r'^\d', obj_name):
