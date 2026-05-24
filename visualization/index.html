@@ -450,6 +450,8 @@
 
       <!-- 右侧操作按钮 -->
       <div class="flex items-center gap-2">
+        <!-- 语言切换 -->
+        <button id="lang-toggle" class="btn" onclick="setLang(currentLang === 'zh' ? 'en' : 'zh')">EN</button>
         <!-- 主题切换 -->
         <div class="theme-toggle" onclick="toggleTheme()" title="切换主题">
           <i data-lucide="sun" class="w-4 h-4" id="themeIcon"></i>
@@ -823,6 +825,89 @@
 
   <!-- ===== JavaScript ===== -->
   <script>
+    // ===== 国际化 i18n =====
+    const i18n = {
+        zh: {
+            title: 'ArkTS 知识图谱',
+            stats: '统计信息',
+            files: '文件',
+            classes: '类',
+            components: '组件',
+            methods: '方法',
+            calls: '调用关系',
+            inherits: '继承关系',
+            search_placeholder: '搜索类、方法...',
+            export_btn: '导出',
+            theme_toggle: '🌙 暗色',
+            theme_toggle_light: '☀️ 亮色',
+            knowledge_graph: '知识图谱',
+            class_list: '类列表',
+            method_list: '方法列表',
+            call_relations: '调用关系',
+            component_tree: '组件树',
+            ai_query: 'AI 查询',
+            ai_placeholder: '输入自然语言问题...',
+            no_data: '暂无数据',
+            loading: '加载中...',
+            error: '出错了',
+        },
+        en: {
+            title: 'ArkTS Knowledge Graph',
+            stats: 'Statistics',
+            files: 'Files',
+            classes: 'Classes',
+            components: 'Components',
+            methods: 'Methods',
+            calls: 'Call Relations',
+            inherits: 'Inheritance',
+            search_placeholder: 'Search classes, methods...',
+            export_btn: 'Export',
+            theme_toggle: '🌙 Dark',
+            theme_toggle_light: '☀️ Light',
+            knowledge_graph: 'Knowledge Graph',
+            class_list: 'Class List',
+            method_list: 'Method List',
+            call_relations: 'Call Relations',
+            component_tree: 'Component Tree',
+            ai_query: 'AI Query',
+            ai_placeholder: 'Ask a natural language question...',
+            no_data: 'No data',
+            loading: 'Loading...',
+            error: 'Error',
+        }
+    };
+
+    let currentLang = localStorage.getItem('lang') || 'zh';
+
+    function t(key) {
+        return (i18n[currentLang] && i18n[currentLang][key]) || key;
+    }
+
+    function setLang(lang) {
+        currentLang = lang;
+        localStorage.setItem('lang', lang);
+        applyTranslations();
+        updateLangButton();
+    }
+
+    function applyTranslations() {
+        // 更新所有带 data-i18n 属性的元素
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            el.textContent = t(el.getAttribute('data-i18n'));
+        });
+        // 更新所有带 data-i18n-placeholder 属性的输入框
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+            el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
+        });
+    }
+
+    function updateLangButton() {
+        const btn = document.getElementById('lang-toggle');
+        if (btn) {
+            btn.textContent = currentLang === 'zh' ? 'EN' : '中文';
+        }
+    }
+
     // ========================================
     // API 基础配置
     // ========================================
