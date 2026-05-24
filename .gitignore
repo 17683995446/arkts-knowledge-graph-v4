@@ -1,5 +1,42 @@
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Database
 *.db
-*.bak
-.uploads/
+*.sqlite3
+
+# Logs
+*.log
+
+# Test directories (generated during testing)
+bugfix_test/
+chaos_test/
+error_test/
+harmony_test/
+large_scale_test/
+p1_targeted_test/
+test_phase6/
+xl_test/
+phase*_test/
+round*_test/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp

@@ -416,7 +416,10 @@ class DatabaseManager:
         if any(kw in sql_upper for kw in dangerous):
             raise ValueError(f"查询中包含不允许的操作: {sql[:50]}")
         # 检查分号（防止多语句注入，如 SELECT ...; DROP TABLE ...）
-        # 去除字符串内的分号后检查
+        # 先移除末尾单个分号（AI生成的SQL通常以分号结尾），再检查中间的分号
+        sql_stripped = sql.rstrip()
+        if sql_stripped.endswith(';'):
+            sql = sql_stripped[:-1]
         cleaned = re.sub(r"'[^']*'", '', sql)
         cleaned = re.sub(r'"[^"]*"', '', cleaned)
         if ';' in cleaned:
@@ -576,11 +579,11 @@ class ArkTSParser:
     SKIP_IDENTIFIERS = JS_GLOBALS | JS_KEYWORDS | ARKTS_KEYWORDS | UI_COMPONENTS | UI_CHAIN_PROPERTIES
 
     def __init__(self):
-        # 装饰器正则（支持嵌套括号如 @StorageLink(StorageKeys.THEME)）
+        # 装饰器正则（仅用于简单场景，嵌套括号由函数处理）
         self.decorator_pattern = re.compile(r'@\w+\s*\([^()]*\)')
         # 组件装饰器（@Component, @CustomDialog, @Reusable 都标记为组件）
-        self.component_decorator = re.compile(r'@(?:Component|CustomDialog|Reusable)\s*(?:\([^()]*\))?\s*')
-        self.entry_decorator = re.compile(r'@Entry\s*(?:\([^()]*\))?\s*')
+        self.component_decorator = re.compile(r'@(?:Component|CustomDialog|Reusable)\b')
+        self.entry_decorator = re.compile(r'@Entry\b')
 
         # struct正则（支持extends和implements，支持嵌套泛型）
         self.struct_pattern = re.compile(
@@ -602,6 +605,7 @@ class ArkTSParser:
         )
 
         # 装饰器行移除正则（保留行号，用于方法解析前的预处理）
+        # 简单装饰器（无参数或一层括号）
         self.decorator_line_pattern = re.compile(
             r'^([ \t]*)@\w+[ \t]*\([^()]*\)[ \t]*',
             re.MULTILINE
@@ -613,8 +617,9 @@ class ArkTSParser:
 
         # 箭头函数属性正则（如 on = (event: string) => { ... }）
         # 注意：不包含装饰器匹配，装饰器在 _parse_methods 中预先移除
+        # 支持泛型箭头函数属性：handler = <T>(data: T) => { ... }
         self.arrow_property_pattern = re.compile(
-            r'^[ \t]*(private\s+|public\s+|protected\s+)?(static\s+)?(' + _ID_PATTERN + r')\s*=\s*\(',
+            r'^[ \t]*(private\s+|public\s+|protected\s+)?(static\s+)?(' + _ID_PATTERN + r')\s*=\s*(?:<[^{}]*?>\s*)?\(',
             re.MULTILINE
         )
 
@@ -686,18 +691,36 @@ class ArkTSParser:
             # 正则字面量 /pattern/flags
             elif c == '/' and i + 1 < n and content[i + 1] != '/' and content[i + 1] != '*':
                 # 判断是否为正则字面量（非除法运算符）
-                # 如果前面是标识符字符、)、]、}，则为除法
+                # 如果前面是标识符字符、)、]、}、数字，则为除法
+                # 向前跳过空格检查更前面的字符
                 is_regex = True
                 if i > 0:
-                    prev = content[i - 1]
-                    if prev.isalnum() or prev in '_$)]}':
-                        is_regex = False
+                    # 向前跳过空格和换行
+                    check_pos = i - 1
+                    while check_pos >= 0 and content[check_pos] in ' \t':
+                        check_pos -= 1
+                    if check_pos >= 0:
+                        prev = content[check_pos]
+                        if prev.isalnum() or prev in '_$)]}':
+                            is_regex = False
                 if is_regex:
                     result.append(' ')
                     i += 1
                     while i < n and content[i] != '/':
                         if content[i] == '\\' and i + 1 < n:
                             i += 1  # 跳过转义字符
+                        elif content[i] == '[':
+                            # 跳过正则字符类 [...]，其中的 / 不需要转义
+                            i += 1
+                            if i < n and content[i] == '^':
+                                i += 1
+                            if i < n and content[i] == ']':
+                                i += 1
+                            while i < n and content[i] != ']':
+                                if content[i] == '\\' and i + 1 < n:
+                                    i += 1
+                                i += 1
+                            # i 现在指向 ]，外层循环会 i+=1 跳过
                         if i < n and content[i] == '\n':
                             result.append('\n')
                         i += 1
@@ -871,11 +894,10 @@ class ArkTSParser:
         for match in self.struct_pattern.finditer(stripped):
             name = match.group(3)
             before = stripped[:match.start()]
-            # 向前搜索装饰器区域：取最后一个 '}' 或行首之后的内容
-            # 但至少向前搜索500个字符以覆盖多行装饰器
+            # 向前搜索装饰器区域：取最后一个 '}' 之后的内容
+            # 与 _full_parse 保持一致，搜索整个 before 区域
             last_brace = before.rfind('}')
-            search_start = max(0, last_brace) if last_brace != -1 else max(0, len(before) - 500)
-            region = before[search_start:]
+            region = before[last_brace:] if last_brace != -1 else before
             if self.component_decorator.search(region):
                 self._component_names.add(name)
                 _logger.debug(f"[SCAN] struct '{name}' -> component (decorator found)")
@@ -1002,6 +1024,51 @@ class ArkTSParser:
             return ''
         return stripped[open_brace:close + 1]
 
+    def _strip_decorators_with_nested_parens(self, body: str) -> str:
+        """移除带嵌套括号的装饰器行（如 @Watch(func('key'))），保留行号"""
+        result = []
+        i = 0
+        n = len(body)
+        while i < n:
+            # 检测行首装饰器 @word(
+            if body[i] == '@' and (i == 0 or body[i-1] == '\n'):
+                # 提取装饰器名
+                j = i + 1
+                while j < n and body[j].isalnum():
+                    j += 1
+                if j < n and body[j] == '(':
+                    # 找到装饰器名后的 (，跳过整个括号内容（支持嵌套）
+                    paren_depth = 0
+                    while j < n:
+                        if body[j] == '(':
+                            paren_depth += 1
+                        elif body[j] == ')':
+                            paren_depth -= 1
+                            if paren_depth == 0:
+                                j += 1
+                                break
+                        j += 1
+                    # 跳过装饰器后的空白
+                    while j < n and body[j] in ' \t':
+                        j += 1
+                    # 如果后面是换行或行尾，移除整行（保留缩进和换行）
+                    if j >= n or body[j] == '\n':
+                        # 保留缩进
+                        result.append(' ')
+                        if j < n:
+                            result.append('\n')
+                        i = j
+                        if i < n:
+                            i += 1
+                        continue
+                    else:
+                        # 装饰器后面有其他内容，只移除装饰器部分
+                        i = j
+                        continue
+            result.append(body[i])
+            i += 1
+        return ''.join(result)
+
     def _parse_methods(self, body_stripped: str, class_name: str, file_path: str,
                        class_line: int):
         """在stripped类体上解析方法（包括箭头函数属性）"""
@@ -1017,9 +1084,11 @@ class ArkTSParser:
         })
 
         # 预处理：移除装饰器（保留行号，避免正则回溯问题）
-        # 先移除带参数的装饰器（如 @Watch('onThemeChange') -> @Watch(...) 在stripped中变为 @Watch(  )）
-        body_no_dec = self.decorator_line_pattern.sub(r'\1', body_stripped)
-        # 再移除无参数的装饰器（如 @Component）
+        # 先用函数移除带嵌套括号的装饰器（如 @Watch(func('key')) ）
+        body_no_dec = self._strip_decorators_with_nested_parens(body_stripped)
+        # 再用正则移除简单带参数的装饰器（如 @Watch('onThemeChange')）
+        body_no_dec = self.decorator_line_pattern.sub(r'\1', body_no_dec)
+        # 最后移除无参数的装饰器（如 @Component）
         body_no_dec = self.decorator_line_noarg_pattern.sub(r'\1', body_no_dec)
         
         # 计算每个位置的花括号深度（只在顶层深度=1时匹配方法）
@@ -1052,8 +1121,9 @@ class ArkTSParser:
                 continue
             if method_name in self.UI_COMPONENTS:
                 continue
-            if method_name in self.UI_CHAIN_PROPERTIES and method_name not in ARKTS_LIFECYCLE:
-                continue
+            # 注意：不再过滤 UI_CHAIN_PROPERTIES，因为：
+            # 1. 方法体内部的属性调用已被 depth != 1 过滤
+            # 2. onChange/onSubmit 等是合法的方法名（如 @Watch 回调）
             # 跳过已知组件名（在build体中使用的组件不是方法定义）
             if method_name in self._component_names and method_name != class_name:
                 continue
@@ -1117,8 +1187,6 @@ class ArkTSParser:
             if method_name == 'constructor':
                 continue
             if method_name in self.UI_COMPONENTS:
-                continue
-            if method_name in self.UI_CHAIN_PROPERTIES and method_name not in ARKTS_LIFECYCLE:
                 continue
             if method_name in self._component_names and method_name != class_name:
                 continue
@@ -1292,10 +1360,10 @@ class ArkTSParser:
             obj_name = match.group(1)  # 可能是None
             callee = match.group(2)
 
-            # 跳过SKIP_IDENTIFIERS（但如果obj_name存在，保留get/set/delete等）
+            # 跳过SKIP_IDENTIFIERS（但如果obj_name存在，保留常见方法名）
             if callee in self.SKIP_IDENTIFIERS:
                 # 如果是 obj.method() 形式，保留常见方法名
-                if obj_name and callee in {'get', 'set', 'delete', 'has', 'of', 'entries', 'keys', 'values', 'forEach', 'map', 'filter', 'reduce', 'find', 'some', 'every', 'includes', 'indexOf', 'slice', 'splice', 'push', 'pop', 'shift', 'unshift', 'join', 'split', 'trim', 'toString', 'toFixed', 'stringify', 'parse', 'json', 'then', 'catch', 'finally', 'next', 'done', 'value', 'ok', 'status', 'length', 'count', 'round', 'min', 'max', 'abs', 'floor', 'ceil', 'random', 'sort', 'reverse', 'concat', 'flat', 'fill', 'copyWithin', 'entries'}:
+                if obj_name and callee in {'get', 'set', 'delete', 'has', 'of', 'entries', 'keys', 'values', 'forEach', 'map', 'filter', 'reduce', 'find', 'some', 'every', 'includes', 'indexOf', 'slice', 'splice', 'push', 'pop', 'shift', 'unshift', 'join', 'split', 'trim', 'toString', 'toFixed', 'stringify', 'parse', 'json', 'then', 'catch', 'finally', 'next', 'done', 'value', 'ok', 'status', 'length', 'count', 'round', 'min', 'max', 'abs', 'floor', 'ceil', 'random', 'sort', 'reverse', 'concat', 'flat', 'fill', 'copyWithin', 'entries', 'fetch'}:
                     pass  # 保留
                 else:
                     continue
@@ -1384,6 +1452,14 @@ class ArkTSParser:
             if var_type and var_type in self._all_class_names:
                 call.callee_class = var_type
                 continue
+            
+            # 规则4: callee是成员变量名（如List类型变量的get/add方法）→ 推断为变量类型
+            # 场景: this.simple.get() 或 simple.get()，其中simple是List类型
+            # 此时callee='get', callee_class=''，需要检查callee是否是成员变量名
+            var_type = member_types.get(call.caller_class, {}).get(call.callee, '')
+            if var_type and var_type in self._all_class_names:
+                call.callee_class = var_type
+                continue
     
     def _extract_member_types(self) -> Dict[str, Dict[str, str]]:
         """从类体中提取成员变量的类型信息"""
@@ -1401,12 +1477,12 @@ class ArkTSParser:
             
             stripped = self._strip_comments_and_strings(content)
             
-            # 成员变量模式 - 支持泛型类型、联合类型、可选类型、函数类型
+            # 成员变量模式 - 支持泛型类型、联合类型、可选类型、函数类型、数组类型、路径类型
             member_pattern = re.compile(
                 r'(private|public|protected)?\s*'
                 r'(?:static\s+)?'
                 r'(\w+)\s*:\s*'
-                r'([\w<>,\s|&?()]+\w)'  # 捕获类型表达式（含联合|、可选?、泛型<>、函数()）
+                r'([\w<>,\s|&?().\[\]{}>:]+)'  # 捕获类型表达式（含泛型<>、联合|、可选?、数组[]、花括号{}、路径:）
             )
             
             # 在struct和class中查找
