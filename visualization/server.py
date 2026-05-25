@@ -852,6 +852,293 @@ def quality_file():
 
 
 # ============================================================
+# 图谱对比与差异分析 API
+# ============================================================
+
+@app.route("/api/diff/compare", methods=["POST"])
+def diff_compare():
+    """
+    对比两个数据库的图谱差异
+    请求体: { "old_db": "path/to/old.db", "new_db": "path/to/new.db" }
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "请求体不能为空"}), 400
+
+    old_db = data.get("old_db", "").strip()
+    new_db = data.get("new_db", "").strip()
+
+    if not old_db or not new_db:
+        return jsonify({"error": "请提供 old_db 和 new_db 参数"}), 400
+
+    # 安全检查：确保路径在允许范围内
+    base_dir = os.path.dirname(DB_PATH) or "."
+    old_db_path = os.path.abspath(os.path.join(base_dir, old_db))
+    new_db_path = os.path.abspath(os.path.join(base_dir, new_db))
+
+    if not old_db_path.endswith('.db') or not new_db_path.endswith('.db'):
+        return jsonify({"error": "只允许对比 .db 文件"}), 400
+
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from graph_diff import compare_graphs
+
+        result = compare_graphs(old_db_path, new_db_path)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/diff/snapshots", methods=["GET"])
+def diff_snapshots():
+    """获取可用的数据库快照列表（用于对比选择）"""
+    base_dir = os.path.dirname(DB_PATH) or "."
+
+    snapshots = []
+    for db_file in sorted(glob.glob(os.path.join(base_dir, "*.db"))):
+        try:
+            conn = sqlite3.connect(db_file)
+            cursor = conn.execute("SELECT COUNT(*) FROM classes")
+            class_count = cursor.fetchone()[0]
+            cursor = conn.execute("SELECT COUNT(*) FROM methods")
+            method_count = cursor.fetchone()[0]
+            conn.close()
+
+            stat = os.stat(db_file)
+            snapshots.append({
+                "name": os.path.basename(db_file),
+                "path": db_file,
+                "class_count": class_count,
+                "method_count": method_count,
+                "size_mb": round(stat.st_size / 1024 / 1024, 2),
+                "modified": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(stat.st_mtime))
+            })
+        except Exception:
+            pass
+
+    return jsonify({"snapshots": snapshots})
+
+
+# ============================================================
+# 智能代码搜索 API
+# ============================================================
+
+@app.route("/api/search/smart", methods=["GET"])
+def search_smart():
+    """
+    智能代码搜索（基于语义）
+    查询参数: ?q=关键词&limit=20
+    """
+    query = request.args.get('q', '').strip()
+    limit = request.args.get('limit', 20, type=int)
+
+    if not query or len(query) < 2:
+        return jsonify({"error": "查询词至少需要2个字符"}), 400
+
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from smart_search import smart_search
+
+        results = smart_search(DB_PATH, query, limit)
+        return jsonify({
+            "query": query,
+            "count": len(results),
+            "results": results
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/search/similar", methods=["GET"])
+def search_similar():
+    """
+    查找相似代码
+    查询参数: ?entity=类名或方法名&limit=10
+    """
+    entity = request.args.get('entity', '').strip()
+    limit = request.args.get('limit', 10, type=int)
+
+    if not entity:
+        return jsonify({"error": "请提供 entity 参数"}), 400
+
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from smart_search import find_similar_code
+
+        results = find_similar_code(DB_PATH, entity, limit)
+        return jsonify({
+            "entity": entity,
+            "count": len(results),
+            "results": results
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/search/patterns", methods=["GET"])
+def search_patterns():
+    """
+    获取支持的搜索模式列表
+    """
+    patterns = [
+        {"id": "event_handler", "name": "事件处理器", "pattern": "^on[A-Z]", "example": "onClick, onChange"},
+        {"id": "getter", "name": "Getter方法", "pattern": "^get[A-Z]", "example": "getName, getValue"},
+        {"id": "setter", "name": "Setter方法", "pattern": "^set[A-Z]", "example": "setName, setValue"},
+        {"id": "boolean", "name": "布尔判断", "pattern": "^is[A-Z]|^has[A-Z]", "example": "isValid, hasChildren"},
+        {"id": "factory", "name": "工厂方法", "pattern": "^create[A-Z]|^build[A-Z]", "example": "createInstance, buildView"},
+        {"id": "lifecycle", "name": "生命周期", "pattern": "^aboutTo|^(on|did)[A-Z]", "example": "aboutToAppear, onInit"},
+    ]
+    return jsonify({"patterns": patterns})
+
+
+@app.route("/api/search/pattern/<pattern_type>", methods=["GET"])
+def search_by_pattern(pattern_type):
+    """
+    按模式搜索
+    """
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from smart_search import SmartSearcher
+
+        searcher = SmartSearcher(DB_PATH)
+        try:
+            results = searcher.search_by_pattern(pattern_type)
+            return jsonify({
+                "pattern": pattern_type,
+                "count": len(results),
+                "results": [
+                    {
+                        "name": r.name,
+                        "type": r.entity_type,
+                        "file": r.file_path,
+                        "line": r.line_number,
+                        "content": r.content[:100] if r.content else ""
+                    }
+                    for r in results
+                ]
+            })
+        finally:
+            searcher.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ============================================================
+# 性能剖析 API
+# ============================================================
+
+@app.route("/api/profile/summary", methods=["GET"])
+def profile_summary():
+    """获取性能概要"""
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from performance_profiler import PerformanceProfiler
+
+        profiler = PerformanceProfiler(DB_PATH)
+        try:
+            summary = profiler.get_performance_summary()
+            return jsonify(summary)
+        finally:
+            profiler.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/profile/hotspots", methods=["GET"])
+def profile_hotspots():
+    """获取热点方法"""
+    limit = request.args.get('limit', 20, type=int)
+
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from performance_profiler import PerformanceProfiler
+
+        profiler = PerformanceProfiler(DB_PATH)
+        try:
+            hotspots = profiler.analyze_hotspots(limit)
+            return jsonify({"hotspots": hotspots, "count": len(hotspots)})
+        finally:
+            profiler.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/profile/method/<method_name>", methods=["GET"])
+def profile_method(method_name):
+    """获取方法详细性能画像"""
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from performance_profiler import PerformanceProfiler
+
+        profiler = PerformanceProfiler(DB_PATH)
+        try:
+            profile = profiler.get_method_profile(method_name)
+            if profile:
+                return jsonify(profile)
+            else:
+                return jsonify({"error": "方法未找到"}), 404
+        finally:
+            profiler.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/profile/flame", methods=["GET"])
+def profile_flame():
+    """获取火焰图数据"""
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from performance_profiler import PerformanceProfiler
+
+        profiler = PerformanceProfiler(DB_PATH)
+        try:
+            data = profiler.generate_flame_graph_data()
+            return jsonify(data)
+        finally:
+            profiler.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/profile/trace/<method_name>", methods=["GET"])
+def profile_trace(method_name):
+    """追踪方法调用链"""
+    max_depth = request.args.get('max_depth', 5, type=int)
+
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from performance_profiler import PerformanceProfiler
+
+        profiler = PerformanceProfiler(DB_PATH)
+        try:
+            chains = profiler.trace_call_chain(method_name, max_depth)
+            return jsonify({
+                "method": method_name,
+                "chains": [
+                    {
+                        "root": c.root_method,
+                        "path": c.path,
+                        "estimated_time_ms": c.total_time_ms
+                    }
+                    for c in chains
+                ]
+            })
+        finally:
+            profiler.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ============================================================
 # WebSocket 实时更新支持 (Server-Sent Events)
 # ============================================================
 

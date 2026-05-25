@@ -1,13 +1,16 @@
-# ArkTS→SQLite 代码知识图谱系统 V5.0 🚀
+# ArkTS→SQLite 代码知识图谱系统 V5.1 🚀
 
-[![Version](https://img.shields.io/badge/version-5.0-blue)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-5.1-blue)](./CHANGELOG.md)
 [![Python](https://img.shields.io/badge/python-3.9+-green)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-yellow)](./LICENSE)
 
 基于第一性原理设计的极简、高效、零成本的代码知识图谱解决方案。
 
-## ✨ V5.0 新特性
+## ✨ V5.1 新特性
 
+- **🔍 图谱对比与差异分析** - 对比两个版本，可视化变更影响
+- **🧠 智能代码搜索** - 基于语义的代码搜索，支持同义词扩展
+- **🔥 性能剖析集成** - 热点方法识别、调用链追踪、火焰图
 - **🎯 Canvas四叉树渲染** - 支持万级节点流畅渲染 (>30fps)
 - **⚡ AI查询缓存** - LRU缓存+TTL过期，重复查询毫秒级响应
 - **🔌 WebSocket实时更新** - SSE实时推送数据库变更
