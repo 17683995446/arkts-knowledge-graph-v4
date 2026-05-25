@@ -1,18 +1,22 @@
 # -*- coding: utf-8 -*-
 """
 ArkTS 知识图谱可视化 - Flask 后端服务
-提供 REST API 接口，用于查询和展示知识图谱数据
+提供 REST API 和 WebSocket 接口，用于查询和展示知识图谱数据
 """
 
 import argparse
 import csv
 import glob
+import hashlib
 import io
+import json
 import os
 import re
 import sqlite3
 import sys
 import time
+from functools import lru_cache
+from threading import Lock, Thread
 
 import requests
 from flask import Flask, jsonify, request, Response, send_file, send_from_directory
@@ -26,6 +30,69 @@ CORS(app)  # 启用跨域支持
 
 # 全局数据库路径，启动时通过命令行参数设置
 DB_PATH = "../test_code.db"
+
+# ============================================================
+# AI 查询缓存系统
+# ============================================================
+
+class QueryCache:
+    """LRU查询缓存，支持TTL过期"""
+
+    def __init__(self, max_size=1000, default_ttl=300):
+        self.max_size = max_size
+        self.default_ttl = default_ttl
+        self.cache = {}
+        self.timestamps = {}
+        self.lock = Lock()
+
+    def _make_key(self, question, db_path):
+        """生成缓存键"""
+        key_str = f"{question}:{db_path}:{os.path.getmtime(db_path) if os.path.exists(db_path) else 0}"
+        return hashlib.md5(key_str.encode()).hexdigest()
+
+    def get(self, question, db_path):
+        """获取缓存结果"""
+        key = self._make_key(question, db_path)
+        with self.lock:
+            if key in self.cache:
+                if time.time() - self.timestamps[key] < self.default_ttl:
+                    return self.cache[key]
+                else:
+                    # 过期清理
+                    del self.cache[key]
+                    del self.timestamps[key]
+        return None
+
+    def set(self, question, db_path, result):
+        """设置缓存结果"""
+        key = self._make_key(question, db_path)
+        with self.lock:
+            # LRU清理
+            if len(self.cache) >= self.max_size:
+                oldest = min(self.timestamps, key=self.timestamps.get)
+                del self.cache[oldest]
+                del self.timestamps[oldest]
+
+            self.cache[key] = result
+            self.timestamps[key] = time.time()
+
+    def clear(self):
+        """清空缓存"""
+        with self.lock:
+            self.cache.clear()
+            self.timestamps.clear()
+
+    def stats(self):
+        """返回缓存统计"""
+        with self.lock:
+            return {
+                "size": len(self.cache),
+                "max_size": self.max_size,
+                "hit_rate": getattr(self, '_hits', 0) / max(getattr(self, '_total', 1), 1)
+            }
+
+# 全局查询缓存实例
+query_cache = QueryCache(max_size=500, default_ttl=600)  # 500条缓存，10分钟TTL
 
 
 # ============================================================
@@ -423,10 +490,10 @@ SQL语句："""
 @app.route("/api/ai/query", methods=["POST"])
 def ai_query():
     """
-    AI 自然语言查询（带重试机制）
-    请求体：{ "question": "...", "api_key": "..." }
+    AI 自然语言查询（带缓存和重试机制）
+    请求体：{ "question": "...", "api_key": "...", "use_cache": true }
     使用硅基流动 API 将自然语言转 SQL，执行后返回结果
-    支持最多 3 次重试，包含 SQL 验证和自动修正
+    支持缓存（默认启用）、最多 3 次重试、SQL 验证和自动修正
     """
     data = request.get_json()
     if not data:
@@ -434,19 +501,44 @@ def ai_query():
 
     question = data.get("question", "").strip()
     api_key = data.get("api_key", "").strip()
+    use_cache = data.get("use_cache", True)  # 默认启用缓存
 
     if not question:
         return jsonify({"error": "请提供 question 参数"}), 400
     if not api_key:
         return jsonify({"error": "请提供 api_key 参数"}), 400
 
+    # 检查缓存
+    if use_cache:
+        cached = query_cache.get(question, DB_PATH)
+        if cached:
+            cached['from_cache'] = True
+            return jsonify(cached)
+
     # 使用带重试机制的查询
     result = ai_query_with_retry(question, api_key)
 
     if result.get('success'):
+        # 存入缓存
+        if use_cache:
+            query_cache.set(question, DB_PATH, result)
+        result['from_cache'] = False
         return jsonify(result)
     else:
         return jsonify(result), 500
+
+
+@app.route("/api/ai/cache/stats", methods=["GET"])
+def ai_cache_stats():
+    """获取AI查询缓存统计"""
+    return jsonify(query_cache.stats())
+
+
+@app.route("/api/ai/cache/clear", methods=["POST"])
+def ai_cache_clear():
+    """清空AI查询缓存"""
+    query_cache.clear()
+    return jsonify({"success": True, "message": "缓存已清空"})
 
 
 @app.route("/api/export/json", methods=["GET"])
@@ -700,6 +792,195 @@ def list_projects():
 
 
 # ============================================================
+# 代码质量分析 API
+# ============================================================
+
+@app.route("/api/quality/report", methods=["GET"])
+def quality_report():
+    """获取代码质量报告"""
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from quality_analyzer import analyze_quality
+
+        report = analyze_quality(DB_PATH)
+        return jsonify(report)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/quality/file", methods=["GET"])
+def quality_file():
+    """获取单个文件的质量分析"""
+    file_path = request.args.get('path', '')
+    if not file_path:
+        return jsonify({"error": "请提供文件路径"}), 400
+
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from quality_analyzer import CodeQualityAnalyzer
+
+        analyzer = CodeQualityAnalyzer(DB_PATH)
+        try:
+            metrics = analyzer.analyze_file(file_path)
+            if metrics:
+                return jsonify({
+                    'file_path': metrics.file_path,
+                    'total_lines': metrics.total_lines,
+                    'code_lines': metrics.code_lines,
+                    'comment_lines': metrics.comment_lines,
+                    'blank_lines': metrics.blank_lines,
+                    'class_count': metrics.class_count,
+                    'method_count': metrics.method_count,
+                    'avg_method_length': metrics.avg_method_length,
+                    'max_method_length': metrics.max_method_length,
+                    'complexity_score': metrics.complexity_score,
+                    'maintainability_index': metrics.maintainability_index,
+                    'duplicate_score': metrics.duplicate_score,
+                    'naming_score': metrics.naming_score,
+                    'overall_score': metrics.overall_score,
+                    'grade': analyzer._score_to_grade(metrics.overall_score),
+                    'issues': metrics.issues
+                })
+            else:
+                return jsonify({"error": "无法分析文件"}), 404
+        finally:
+            analyzer.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ============================================================
+# WebSocket 实时更新支持 (Server-Sent Events)
+# ============================================================
+
+class DataChangeMonitor:
+    """数据库变更监控器"""
+
+    def __init__(self, db_path):
+        self.db_path = db_path
+        self.last_mtime = 0
+        self.clients = []
+        self.running = False
+        self.lock = Lock()
+
+    def add_client(self, client):
+        with self.lock:
+            self.clients.append(client)
+
+    def remove_client(self, client):
+        with self.lock:
+            if client in self.clients:
+                self.clients.remove(client)
+
+    def notify_clients(self, message):
+        with self.lock:
+            dead_clients = []
+            for client in self.clients:
+                try:
+                    client.put(message)
+                except Exception:
+                    dead_clients.append(client)
+            for dead in dead_clients:
+                self.clients.remove(dead)
+
+    def check_changes(self):
+        """检查数据库文件变更"""
+        try:
+            current_mtime = os.path.getmtime(self.db_path)
+            if current_mtime > self.last_mtime:
+                self.last_mtime = current_mtime
+                return True
+        except Exception:
+            pass
+        return False
+
+    def start_monitoring(self):
+        """启动监控线程"""
+        if self.running:
+            return
+        self.running = True
+        self.monitor_thread = Thread(target=self._monitor_loop, daemon=True)
+        self.monitor_thread.start()
+
+    def _monitor_loop(self):
+        """监控循环"""
+        while self.running:
+            if self.check_changes():
+                self.notify_clients({
+                    'type': 'db_changed',
+                    'timestamp': time.time(),
+                    'message': '数据库已更新'
+                })
+            time.sleep(2)  # 每2秒检查一次
+
+    def stop(self):
+        self.running = False
+
+# 全局监控器实例
+monitor = None
+
+
+def get_monitor():
+    """获取或创建监控器"""
+    global monitor
+    if monitor is None:
+        monitor = DataChangeMonitor(DB_PATH)
+        monitor.start_monitoring()
+    return monitor
+
+
+class MessageQueue:
+    """简单的消息队列用于SSE"""
+
+    def __init__(self):
+        self.messages = []
+        self.event = None
+
+    def put(self, message):
+        self.messages.append(json.dumps(message))
+
+    def get(self):
+        if self.messages:
+            return self.messages.pop(0)
+        return None
+
+
+@app.route('/api/events')
+def sse_events():
+    """Server-Sent Events 端点"""
+    def event_stream():
+        client = MessageQueue()
+        get_monitor().add_client(client)
+        try:
+            # 发送初始连接消息
+            yield f"data: {json.dumps({'type': 'connected', 'message': '已连接到实时更新服务'})}\n\n"
+
+            while True:
+                msg = client.get()
+                if msg:
+                    yield f"data: {msg}\n\n"
+                time.sleep(0.5)
+        finally:
+            get_monitor().remove_client(client)
+
+    return Response(event_stream(), mimetype='text/event-stream',
+                   headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
+
+
+@app.route('/api/notify/refresh', methods=['POST'])
+def notify_refresh():
+    """手动触发数据刷新通知"""
+    get_monitor().notify_clients({
+        'type': 'manual_refresh',
+        'timestamp': time.time(),
+        'message': '手动刷新通知'
+    })
+    return jsonify({'success': True, 'message': '刷新通知已发送'})
+
+
+# ============================================================
 # 启动入口
 # ============================================================
 
@@ -723,6 +1004,10 @@ if __name__ == "__main__":
     # 设置全局数据库路径
     DB_PATH = args.db
 
+    # 启动监控器
+    get_monitor()
+
     # 启动服务
     print(f"知识图谱可视化服务已启动: http://localhost:{args.port}")
-    app.run(host="0.0.0.0", port=args.port, debug=args.debug)
+    print(f"WebSocket (SSE) 端点: http://localhost:{args.port}/api/events")
+    app.run(host="0.0.0.0", port=args.port, debug=args.debug, threaded=True)

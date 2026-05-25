@@ -1,6 +1,20 @@
-# ArkTS→SQLite 代码知识图谱系统
+# ArkTS→SQLite 代码知识图谱系统 V5.0 🚀
+
+[![Version](https://img.shields.io/badge/version-5.0-blue)](./CHANGELOG.md)
+[![Python](https://img.shields.io/badge/python-3.9+-green)](https://www.python.org/)
+[![License](https://img.shields.io/badge/license-MIT-yellow)](./LICENSE)
 
 基于第一性原理设计的极简、高效、零成本的代码知识图谱解决方案。
+
+## ✨ V5.0 新特性
+
+- **🎯 Canvas四叉树渲染** - 支持万级节点流畅渲染 (>30fps)
+- **⚡ AI查询缓存** - LRU缓存+TTL过期，重复查询毫秒级响应
+- **🔌 WebSocket实时更新** - SSE实时推送数据库变更
+- **📊 代码质量评分** - 自动检测代码坏味道，生成质量报告
+- **🎨 深色/浅色主题** - 一键切换，护眼模式
+- **🌍 国际化支持** - 中英文无缝切换
+- **📚 OpenAPI文档** - 自动生成API文档
 
 ## 一、系统概述
 
@@ -23,7 +37,7 @@
 ### 2.1 安装依赖
 
 ```bash
-pip install openai
+pip install openai flask flask-cors requests
 ```
 
 ### 2.2 构建知识图谱
