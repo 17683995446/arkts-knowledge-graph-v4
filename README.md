@@ -1,23 +1,26 @@
-# ArkTS→SQLite 代码知识图谱系统 V5.1 🚀
+# ArkTS→SQLite 代码知识图谱系统 V6.0 🚀
 
-[![Version](https://img.shields.io/badge/version-5.1-blue)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-6.0-blue)](./CHANGELOG.md)
 [![Python](https://img.shields.io/badge/python-3.9+-green)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-yellow)](./LICENSE)
 
 基于第一性原理设计的极简、高效、零成本的代码知识图谱解决方案。
 
-## ✨ V5.1 新特性
+## ✨ V6.0 企业级新特性
 
+- **👥 团队协作功能** - 标注评论、快照分享、团队知识库
+- **🤖 AI辅助重构** - 智能重构建议、代码优化提示
 - **🔍 图谱对比与差异分析** - 对比两个版本，可视化变更影响
 - **🧠 智能代码搜索** - 基于语义的代码搜索，支持同义词扩展
 - **🔥 性能剖析集成** - 热点方法识别、调用链追踪、火焰图
+- **🛡️ 安全漏洞扫描** - 识别常见安全模式、敏感信息检测
 - **🎯 Canvas四叉树渲染** - 支持万级节点流畅渲染 (>30fps)
 - **⚡ AI查询缓存** - LRU缓存+TTL过期，重复查询毫秒级响应
 - **🔌 WebSocket实时更新** - SSE实时推送数据库变更
 - **📊 代码质量评分** - 自动检测代码坏味道，生成质量报告
 - **🎨 深色/浅色主题** - 一键切换，护眼模式
 - **🌍 国际化支持** - 中英文无缝切换
-- **📚 OpenAPI文档** - 自动生成API文档
+- **📚 OpenAPI文档** - 自动生成API文档（50+端点）
 
 ## 一、系统概述
 

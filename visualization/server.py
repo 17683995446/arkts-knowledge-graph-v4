@@ -1139,6 +1139,267 @@ def profile_trace(method_name):
 
 
 # ============================================================
+# 团队协作 API
+# ============================================================
+
+# 全局协作管理器实例
+collab_manager = None
+
+def get_collab_manager():
+    """获取协作管理器"""
+    global collab_manager
+    if collab_manager is None:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from collaboration import CollaborationManager
+        collab_manager = CollaborationManager(DB_PATH)
+    return collab_manager
+
+
+@app.route("/api/collab/users", methods=["POST"])
+def collab_create_user():
+    """创建用户"""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "请求体不能为空"}), 400
+
+    username = data.get("username", "").strip()
+    email = data.get("email", "").strip()
+
+    if not username or not email:
+        return jsonify({"error": "请提供用户名和邮箱"}), 400
+
+    try:
+        user = get_collab_manager().create_user(username, email, data.get("avatar", ""))
+        return jsonify({
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "created_at": user.created_at
+        })
+    except sqlite3.IntegrityError:
+        return jsonify({"error": "用户名或邮箱已存在"}), 409
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/collab/annotations", methods=["GET", "POST"])
+def collab_annotations():
+    """获取或创建标注"""
+    if request.method == "GET":
+        entity_type = request.args.get("entity_type")
+        entity_name = request.args.get("entity_name")
+        resolved = request.args.get("resolved", type=lambda x: x.lower() == "true")
+
+        try:
+            annotations = get_collab_manager().get_annotations(
+                entity_type=entity_type,
+                entity_name=entity_name,
+                resolved=resolved
+            )
+            return jsonify({
+                "annotations": [
+                    {
+                        "id": a.id,
+                        "entity_type": a.entity_type,
+                        "entity_name": a.entity_name,
+                        "user_id": a.user_id,
+                        "annotation_type": a.annotation_type,
+                        "content": a.content,
+                        "file_path": a.file_path,
+                        "line_number": a.line_number,
+                        "created_at": a.created_at,
+                        "resolved": a.resolved,
+                        "replies": a.replies
+                    }
+                    for a in annotations
+                ]
+            })
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    else:  # POST
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "请求体不能为空"}), 400
+
+        required = ["entity_type", "entity_name", "user_id", "annotation_type", "content"]
+        for field in required:
+            if not data.get(field):
+                return jsonify({"error": f"缺少必需字段: {field}"}), 400
+
+        try:
+            ann = get_collab_manager().add_annotation(
+                entity_type=data["entity_type"],
+                entity_name=data["entity_name"],
+                user_id=data["user_id"],
+                annotation_type=data["annotation_type"],
+                content=data["content"],
+                file_path=data.get("file_path", ""),
+                line_number=data.get("line_number", 0)
+            )
+            return jsonify({
+                "id": ann.id,
+                "entity_type": ann.entity_type,
+                "entity_name": ann.entity_name,
+                "created_at": ann.created_at
+            })
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/collab/annotations/<annotation_id>", methods=["PUT", "DELETE"])
+def collab_annotation_detail(annotation_id):
+    """更新或删除标注"""
+    if request.method == "PUT":
+        data = request.get_json() or {}
+        try:
+            get_collab_manager().update_annotation(
+                annotation_id,
+                content=data.get("content"),
+                resolved=data.get("resolved")
+            )
+            return jsonify({"success": True})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    else:  # DELETE
+        try:
+            get_collab_manager().delete_annotation(annotation_id)
+            return jsonify({"success": True})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/collab/annotations/<annotation_id>/replies", methods=["POST"])
+def collab_add_reply(annotation_id):
+    """添加回复"""
+    data = request.get_json()
+    if not data or not data.get("user_id") or not data.get("content"):
+        return jsonify({"error": "请提供 user_id 和 content"}), 400
+
+    try:
+        reply = get_collab_manager().add_reply(
+            annotation_id,
+            data["user_id"],
+            data["content"]
+        )
+        return jsonify(reply)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/collab/snapshots", methods=["GET", "POST"])
+def collab_snapshots():
+    """获取或创建快照"""
+    if request.method == "GET":
+        user_id = request.args.get("user_id")
+        try:
+            snapshots = get_collab_manager().list_snapshots(user_id)
+            return jsonify({
+                "snapshots": [
+                    {
+                        "id": s.id,
+                        "name": s.name,
+                        "description": s.description,
+                        "created_by": s.created_by,
+                        "created_at": s.created_at,
+                        "permission": s.permission,
+                        "view_count": s.view_count
+                    }
+                    for s in snapshots
+                ]
+            })
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    else:  # POST
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "请求体不能为空"}), 400
+
+        required = ["name", "description", "created_by"]
+        for field in required:
+            if not data.get(field):
+                return jsonify({"error": f"缺少必需字段: {field}"}), 400
+
+        try:
+            snapshot = get_collab_manager().create_snapshot(
+                name=data["name"],
+                description=data["description"],
+                db_path=DB_PATH,
+                created_by=data["created_by"],
+                permission=data.get("permission", "private")
+            )
+            return jsonify({
+                "id": snapshot.id,
+                "name": snapshot.name,
+                "share_token": snapshot.share_token,
+                "created_at": snapshot.created_at
+            })
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/collab/snapshots/<snapshot_id>", methods=["GET", "DELETE"])
+def collab_snapshot_detail(snapshot_id):
+    """获取或删除快照"""
+    if request.method == "GET":
+        try:
+            snapshot = get_collab_manager().get_snapshot(snapshot_id)
+            if snapshot:
+                get_collab_manager().increment_view_count(snapshot_id)
+                return jsonify({
+                    "id": snapshot.id,
+                    "name": snapshot.name,
+                    "description": snapshot.description,
+                    "created_by": snapshot.created_by,
+                    "created_at": snapshot.created_at,
+                    "permission": snapshot.permission,
+                    "view_count": snapshot.view_count
+                })
+            return jsonify({"error": "快照不存在"}), 404
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    else:  # DELETE
+        try:
+            get_collab_manager().delete_snapshot(snapshot_id)
+            return jsonify({"success": True})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/collab/share/<token>", methods=["GET"])
+def collab_share(token):
+    """通过分享令牌访问快照"""
+    try:
+        snapshot = get_collab_manager().get_snapshot_by_token(token)
+        if snapshot:
+            get_collab_manager().increment_view_count(snapshot.id)
+            return jsonify({
+                "id": snapshot.id,
+                "name": snapshot.name,
+                "description": snapshot.description,
+                "created_by": snapshot.created_by,
+                "created_at": snapshot.created_at
+            })
+        return jsonify({"error": "无效的分享链接"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/collab/stats", methods=["GET"])
+def collab_stats():
+    """获取协作统计"""
+    try:
+        stats = get_collab_manager().get_stats()
+        return jsonify(stats)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ============================================================
 # WebSocket 实时更新支持 (Server-Sent Events)
 # ============================================================
 
