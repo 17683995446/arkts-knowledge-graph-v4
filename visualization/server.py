@@ -1139,6 +1139,105 @@ def profile_trace(method_name):
 
 
 # ============================================================
+# 3D可视化 API
+# ============================================================
+
+@app.route("/api/3d/graph", methods=["GET"])
+def api_3d_graph():
+    """获取3D力导向图谱数据"""
+    max_nodes = request.args.get("max_nodes", 500, type=int)
+    include_methods = request.args.get("methods", "false").lower() == "true"
+
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from visualization_3d import Visualization3D
+
+        viz = Visualization3D(DB_PATH)
+        try:
+            data = viz.get_graph_data(max_nodes, include_methods)
+            return jsonify(data)
+        finally:
+            viz.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/3d/hierarchical", methods=["GET"])
+def api_3d_hierarchical():
+    """获取层级布局数据（按继承层次）"""
+    max_nodes = request.args.get("max_nodes", 300, type=int)
+
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from visualization_3d import Visualization3D
+
+        viz = Visualization3D(DB_PATH)
+        try:
+            data = viz.get_hierarchical_layout(max_nodes)
+            return jsonify(data)
+        finally:
+            viz.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/3d/cluster", methods=["GET"])
+def api_3d_cluster():
+    """获取聚类视图数据（按包/命名空间分组）"""
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from visualization_3d import Visualization3D
+
+        viz = Visualization3D(DB_PATH)
+        try:
+            data = viz.get_cluster_view()
+            return jsonify(data)
+        finally:
+            viz.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/3d/timeline", methods=["GET"])
+def api_3d_timeline():
+    """获取时序演化数据（按文件修改时间）"""
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from visualization_3d import Visualization3D
+
+        viz = Visualization3D(DB_PATH)
+        try:
+            data = viz.get_timeline_data()
+            return jsonify(data)
+        finally:
+            viz.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/3d/export", methods=["GET"])
+def api_3d_export():
+    """导出Three.js兼容格式"""
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from visualization_3d import Visualization3D
+
+        viz = Visualization3D(DB_PATH)
+        try:
+            result = viz.export_to_threejs()
+            return Response(result, mimetype='application/json')
+        finally:
+            viz.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ============================================================
 # AI辅助重构建议 API
 # ============================================================
 
