@@ -1139,6 +1139,134 @@ def profile_trace(method_name):
 
 
 # ============================================================
+# AI辅助重构建议 API
+# ============================================================
+
+@app.route("/api/refactor/suggestions", methods=["GET"])
+def refactor_suggestions():
+    """获取所有重构建议"""
+    priority = request.args.get("priority")  # 过滤优先级
+    category = request.args.get("category")  # 过滤类别
+    limit = request.args.get("limit", 50, type=int)
+
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from refactoring_advisor import RefactoringAdvisor
+
+        advisor = RefactoringAdvisor(DB_PATH)
+        try:
+            suggestions = advisor.analyze_all()
+
+            # 过滤
+            if priority:
+                suggestions = [s for s in suggestions if s.priority == priority]
+            if category:
+                suggestions = [s for s in suggestions if s.category == category]
+
+            suggestions = suggestions[:limit]
+
+            return jsonify({
+                "count": len(suggestions),
+                "suggestions": [
+                    {
+                        "id": s.id,
+                        "title": s.title,
+                        "category": s.category,
+                        "priority": s.priority,
+                        "file": s.file_path,
+                        "line": s.line_number,
+                        "entity": s.entity_name,
+                        "description": s.description,
+                        "current_code": s.current_code,
+                        "suggested_code": s.suggested_code,
+                        "steps": s.steps,
+                        "impact": s.impact,
+                        "effort": s.estimated_effort,
+                        "references": s.references
+                    }
+                    for s in suggestions
+                ]
+            })
+        finally:
+            advisor.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/refactor/entity/<entity_name>", methods=["GET"])
+def refactor_entity(entity_name):
+    """获取特定实体的重构建议"""
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from refactoring_advisor import RefactoringAdvisor
+
+        advisor = RefactoringAdvisor(DB_PATH)
+        try:
+            suggestions = advisor.analyze_entity(entity_name)
+            return jsonify({
+                "entity": entity_name,
+                "count": len(suggestions),
+                "suggestions": [
+                    {
+                        "id": s.id,
+                        "title": s.title,
+                        "category": s.category,
+                        "priority": s.priority,
+                        "description": s.description,
+                        "steps": s.steps,
+                        "impact": s.impact,
+                        "effort": s.estimated_effort
+                    }
+                    for s in suggestions
+                ]
+            })
+        finally:
+            advisor.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/refactor/summary", methods=["GET"])
+def refactor_summary():
+    """获取重构建议摘要"""
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from refactoring_advisor import RefactoringAdvisor
+
+        advisor = RefactoringAdvisor(DB_PATH)
+        try:
+            summary = advisor.get_summary()
+            return jsonify(summary)
+        finally:
+            advisor.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/refactor/categories", methods=["GET"])
+def refactor_categories():
+    """获取支持的重构类别"""
+    categories = [
+        {"id": "extract_method", "name": "提取方法", "description": "将过长方法中的逻辑块提取为独立方法"},
+        {"id": "extract_class", "name": "提取类", "description": "将大类拆分为多个职责单一的小类"},
+        {"id": "rename", "name": "重命名", "description": "修正不符合命名规范的标识符"},
+        {"id": "simplify_cond", "name": "简化条件", "description": "简化复杂的条件表达式"},
+        {"id": "remove_dup", "name": "消除重复", "description": "识别并消除重复代码"},
+        {"id": "reduce_params", "name": "减少参数", "description": "通过参数对象减少方法参数数量"},
+        {"id": "introduce_const", "name": "引入常量", "description": "将魔法数字替换为有意义的常量"},
+        {"id": "fix_naming", "name": "修正命名", "description": "修正不符合命名规范的类名和方法名"},
+        {"id": "add_comments", "name": "添加注释", "description": "为缺少文档的公共API添加注释"},
+        {"id": "handle_exception", "name": "改善异常处理", "description": "修复空catch块和过宽的异常捕获"},
+        {"id": "decouple", "name": "解耦", "description": "降低类之间的耦合度"},
+        {"id": "consolidate", "name": "合并", "description": "合并功能相似的方法或类"},
+    ]
+    return jsonify({"categories": categories})
+
+
+# ============================================================
 # 团队协作 API
 # ============================================================
 
