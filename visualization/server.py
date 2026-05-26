@@ -1139,6 +1139,128 @@ def profile_trace(method_name):
 
 
 # ============================================================
+# 安全漏洞扫描 API
+# ============================================================
+
+@app.route("/api/security/scan", methods=["GET"])
+def security_scan():
+    """执行完整安全扫描"""
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from security_scanner import SecurityScanner
+
+        scanner = SecurityScanner(DB_PATH)
+        try:
+            vulnerabilities = scanner.scan_all()
+            summary = scanner.get_summary()
+            return jsonify({
+                "summary": summary,
+                "vulnerabilities": [
+                    {
+                        "id": v.id,
+                        "title": v.title,
+                        "type": v.type,
+                        "severity": v.severity,
+                        "file": v.file_path,
+                        "line": v.line_number,
+                        "column": v.column,
+                        "code": v.code_snippet,
+                        "description": v.description,
+                        "remediation": v.remediation,
+                        "cwe": v.cwe_id,
+                        "owasp": v.owasp_category,
+                        "confidence": v.confidence,
+                    }
+                    for v in vulnerabilities
+                ]
+            })
+        finally:
+            scanner.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/security/summary", methods=["GET"])
+def security_summary():
+    """获取安全扫描摘要"""
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from security_scanner import SecurityScanner
+
+        scanner = SecurityScanner(DB_PATH)
+        try:
+            summary = scanner.get_summary()
+            return jsonify(summary)
+        finally:
+            scanner.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/security/vulnerabilities", methods=["GET"])
+def security_vulnerabilities():
+    """获取漏洞列表（支持过滤）"""
+    severity_filter = request.args.get("severity")
+    type_filter = request.args.get("type")
+    limit = request.args.get("limit", 100, type=int)
+
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from security_scanner import SecurityScanner
+
+        scanner = SecurityScanner(DB_PATH)
+        try:
+            vulnerabilities = scanner.scan_all()
+
+            # 过滤
+            if severity_filter:
+                vulnerabilities = [v for v in vulnerabilities if v.severity == severity_filter]
+            if type_filter:
+                vulnerabilities = [v for v in vulnerabilities if v.type == type_filter]
+
+            vulnerabilities = vulnerabilities[:limit]
+
+            return jsonify({
+                "count": len(vulnerabilities),
+                "vulnerabilities": [
+                    {
+                        "id": v.id,
+                        "title": v.title,
+                        "type": v.type,
+                        "severity": v.severity,
+                        "file": v.file_path,
+                        "line": v.line_number,
+                        "code": v.code_snippet,
+                        "description": v.description[:100] + "..." if len(v.description) > 100 else v.description,
+                    }
+                    for v in vulnerabilities
+                ]
+            })
+        finally:
+            scanner.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/security/types", methods=["GET"])
+def security_types():
+    """获取支持的漏洞类型列表"""
+    types = [
+        {"id": "hardcoded_secret", "name": "硬编码密钥/密码", "severity": "critical"},
+        {"id": "sql_injection", "name": "SQL注入", "severity": "critical"},
+        {"id": "xss", "name": "跨站脚本（XSS）", "severity": "high"},
+        {"id": "insecure_http", "name": "不安全HTTP", "severity": "low"},
+        {"id": "weak_crypto", "name": "弱加密算法", "severity": "medium"},
+        {"id": "path_traversal", "name": "路径遍历", "severity": "high"},
+        {"id": "debug_code", "name": "调试代码残留", "severity": "info"},
+    ]
+    return jsonify({"types": types})
+
+
+# ============================================================
 # 3D可视化 API
 # ============================================================
 
